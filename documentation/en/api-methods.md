@@ -9,6 +9,7 @@
 * [Beacon](#Beacon)
   * [BeaconGetEntry](#BeaconGetEntry)
 * [Chain](#Chain)
+  * [ChainDeleteObj](#ChainDeleteObj)
   * [ChainExport](#ChainExport)
   * [ChainGetBlock](#ChainGetBlock)
   * [ChainGetBlockMessages](#ChainGetBlockMessages)
@@ -49,6 +50,8 @@
   * [ClientRetrieveTryRestartInsufficientFunds](#ClientRetrieveTryRestartInsufficientFunds)
   * [ClientRetrieveWithEvents](#ClientRetrieveWithEvents)
   * [ClientStartDeal](#ClientStartDeal)
+* [Create](#Create)
+  * [CreateBackup](#CreateBackup)
 * [Gas](#Gas)
   * [GasEstimateFeeCap](#GasEstimateFeeCap)
   * [GasEstimateGasLimit](#GasEstimateGasLimit)
@@ -71,6 +74,7 @@
   * [MpoolPending](#MpoolPending)
   * [MpoolPush](#MpoolPush)
   * [MpoolPushMessage](#MpoolPushMessage)
+  * [MpoolPushUntrusted](#MpoolPushUntrusted)
   * [MpoolSelect](#MpoolSelect)
   * [MpoolSetConfig](#MpoolSetConfig)
   * [MpoolSub](#MpoolSub)
@@ -79,11 +83,14 @@
   * [MsigAddCancel](#MsigAddCancel)
   * [MsigAddPropose](#MsigAddPropose)
   * [MsigApprove](#MsigApprove)
+  * [MsigApproveTxnHash](#MsigApproveTxnHash)
   * [MsigCancel](#MsigCancel)
   * [MsigCreate](#MsigCreate)
   * [MsigGetAvailableBalance](#MsigGetAvailableBalance)
   * [MsigGetVested](#MsigGetVested)
+  * [MsigGetVestingSchedule](#MsigGetVestingSchedule)
   * [MsigPropose](#MsigPropose)
+  * [MsigRemoveSigner](#MsigRemoveSigner)
   * [MsigSwapApprove](#MsigSwapApprove)
   * [MsigSwapCancel](#MsigSwapCancel)
   * [MsigSwapPropose](#MsigSwapPropose)
@@ -148,7 +155,9 @@
   * [StateMinerRecoveries](#StateMinerRecoveries)
   * [StateMinerSectorCount](#StateMinerSectorCount)
   * [StateMinerSectors](#StateMinerSectors)
+  * [StateMsgGasCost](#StateMsgGasCost)
   * [StateNetworkName](#StateNetworkName)
+  * [StateNetworkVersion](#StateNetworkVersion)
   * [StateReadState](#StateReadState)
   * [StateReplay](#StateReplay)
   * [StateSearchMsg](#StateSearchMsg)
@@ -156,8 +165,12 @@
   * [StateSectorGetInfo](#StateSectorGetInfo)
   * [StateSectorPartition](#StateSectorPartition)
   * [StateSectorPreCommitInfo](#StateSectorPreCommitInfo)
+  * [StateVMCirculatingSupplyInternal](#StateVMCirculatingSupplyInternal)
   * [StateVerifiedClientStatus](#StateVerifiedClientStatus)
+  * [StateVerifiedRegistryRootKey](#StateVerifiedRegistryRootKey)
+  * [StateVerifierStatus](#StateVerifierStatus)
   * [StateWaitMsg](#StateWaitMsg)
+  * [StateWaitMsgLimited](#StateWaitMsgLimited)
 * [Sync](#Sync)
   * [SyncCheckBad](#SyncCheckBad)
   * [SyncCheckpoint](#SyncCheckpoint)
@@ -165,7 +178,9 @@
   * [SyncMarkBad](#SyncMarkBad)
   * [SyncState](#SyncState)
   * [SyncSubmitBlock](#SyncSubmitBlock)
+  * [SyncUnmarkAllBad](#SyncUnmarkAllBad)
   * [SyncUnmarkBad](#SyncUnmarkBad)
+  * [SyncValidateTipset](#SyncValidateTipset)
 * [Wallet](#Wallet)
   * [WalletBalance](#WalletBalance)
   * [WalletDefaultAddress](#WalletDefaultAddress)
@@ -178,6 +193,7 @@
   * [WalletSetDefault](#WalletSetDefault)
   * [WalletSign](#WalletSign)
   * [WalletSignMessage](#WalletSignMessage)
+  * [WalletValidateAddress](#WalletValidateAddress)
   * [WalletVerify](#WalletVerify)
 ## 
 
@@ -211,7 +227,7 @@ Response:
 ```json
 {
   "Version": "string value",
-  "APIVersion": 3584,
+  "APIVersion": 4096,
   "BlockDelay": 42
 }
 ```
@@ -279,11 +295,29 @@ The Chain method group contains methods for interacting with the
 blockchain, but that do not require any form of state computation.
 
 
+### ChainDeleteObj
+ChainDeleteObj deletes node referenced by the given CID
+
+
+Perms: admin
+
+Inputs:
+```json
+[
+  {
+    "/": "bafy2bzacea3wsdh6y3a36tb3skempjoxqpuyompjbmfeyf34fi3uy6uue42v4"
+  }
+]
+```
+
+Response: `{}`
+
 ### ChainExport
 ChainExport returns a stream of bytes with CAR dump of chain data.
 The exported chain data includes the header chain from the given tipset
 back to genesis, the entire genesis state, and the most recent 'nroots'
 state trees.
+If oldmsgskip is set, messages from before the requested roots are also not included.
 
 
 Perms: read
@@ -292,6 +326,7 @@ Inputs:
 ```json
 [
   10101,
+  true,
   [
     {
       "/": "bafy2bzacea3wsdh6y3a36tb3skempjoxqpuyompjbmfeyf34fi3uy6uue42v4"
@@ -323,7 +358,7 @@ Inputs:
 Response:
 ```json
 {
-  "Miner": "t01234",
+  "Miner": "f01234",
   "Ticket": {
     "VRFProof": "Ynl0ZSBhcnJheQ=="
   },
@@ -420,8 +455,8 @@ Response:
 ```json
 {
   "Version": 42,
-  "To": "t01234",
-  "From": "t01234",
+  "To": "f01234",
+  "From": "f01234",
   "Nonce": 42,
   "Value": "0",
   "GasLimit": 9,
@@ -913,7 +948,7 @@ Response:
   },
   "State": 42,
   "Message": "string value",
-  "Provider": "t01234",
+  "Provider": "f01234",
   "DataRef": {
     "TransferType": "string value",
     "Root": {
@@ -929,7 +964,8 @@ Response:
   "PricePerEpoch": "0",
   "Duration": 42,
   "DealID": 5432,
-  "CreationTime": "0001-01-01T00:00:00Z"
+  "CreationTime": "0001-01-01T00:00:00Z",
+  "Verified": true
 }
 ```
 
@@ -949,7 +985,7 @@ Response:
   },
   "State": 42,
   "Message": "string value",
-  "Provider": "t01234",
+  "Provider": "f01234",
   "DataRef": {
     "TransferType": "string value",
     "Root": {
@@ -965,7 +1001,8 @@ Response:
   "PricePerEpoch": "0",
   "Duration": 42,
   "DealID": 5432,
-  "CreationTime": "0001-01-01T00:00:00Z"
+  "CreationTime": "0001-01-01T00:00:00Z",
+  "Verified": true
 }
 ```
 
@@ -1051,7 +1088,7 @@ Perms: read
 Inputs:
 ```json
 [
-  "t01234",
+  "f01234",
   {
     "/": "bafy2bzacea3wsdh6y3a36tb3skempjoxqpuyompjbmfeyf34fi3uy6uue42v4"
   },
@@ -1072,9 +1109,9 @@ Response:
   "UnsealPrice": "0",
   "PaymentInterval": 42,
   "PaymentIntervalIncrease": 42,
-  "Miner": "t01234",
+  "Miner": "f01234",
   "MinerPeer": {
-    "Address": "t01234",
+    "Address": "f01234",
     "ID": "12D3KooWGzxzKZYveHXtpG6AsrUJBcWxHBFS2HsEoGTxrMLvKXtf",
     "PieceCID": null
   }
@@ -1091,27 +1128,21 @@ Inputs:
 ```json
 [
   "12D3KooWGzxzKZYveHXtpG6AsrUJBcWxHBFS2HsEoGTxrMLvKXtf",
-  "t01234"
+  "f01234"
 ]
 ```
 
 Response:
 ```json
 {
-  "Ask": {
-    "Price": "0",
-    "VerifiedPrice": "0",
-    "MinPieceSize": 1032,
-    "MaxPieceSize": 1032,
-    "Miner": "t01234",
-    "Timestamp": 10101,
-    "Expiry": 10101,
-    "SeqNo": 42
-  },
-  "Signature": {
-    "Type": 2,
-    "Data": "Ynl0ZSBhcnJheQ=="
-  }
+  "Price": "0",
+  "VerifiedPrice": "0",
+  "MinPieceSize": 1032,
+  "MaxPieceSize": 1032,
+  "Miner": "f01234",
+  "Timestamp": 10101,
+  "Expiry": 10101,
+  "SeqNo": 42
 }
 ```
 
@@ -1149,10 +1180,10 @@ Inputs:
     "UnsealPrice": "0",
     "PaymentInterval": 42,
     "PaymentIntervalIncrease": 42,
-    "Client": "t01234",
-    "Miner": "t01234",
+    "Client": "f01234",
+    "Miner": "f01234",
     "MinerPeer": {
-      "Address": "t01234",
+      "Address": "f01234",
       "ID": "12D3KooWGzxzKZYveHXtpG6AsrUJBcWxHBFS2HsEoGTxrMLvKXtf",
       "PieceCID": null
     }
@@ -1176,7 +1207,7 @@ Perms: write
 Inputs:
 ```json
 [
-  "t01234"
+  "f01234"
 ]
 ```
 
@@ -1202,10 +1233,10 @@ Inputs:
     "UnsealPrice": "0",
     "PaymentInterval": 42,
     "PaymentIntervalIncrease": 42,
-    "Client": "t01234",
-    "Miner": "t01234",
+    "Client": "f01234",
+    "Miner": "f01234",
     "MinerPeer": {
-      "Address": "t01234",
+      "Address": "f01234",
       "ID": "12D3KooWGzxzKZYveHXtpG6AsrUJBcWxHBFS2HsEoGTxrMLvKXtf",
       "PieceCID": null
     }
@@ -1246,8 +1277,8 @@ Inputs:
       "PieceCid": null,
       "PieceSize": 1024
     },
-    "Wallet": "t01234",
-    "Miner": "t01234",
+    "Wallet": "f01234",
+    "Miner": "f01234",
     "EpochPrice": "0",
     "MinBlocksDuration": 42,
     "ProviderCollateral": "0",
@@ -1259,6 +1290,27 @@ Inputs:
 ```
 
 Response: `null`
+
+## Create
+
+
+### CreateBackup
+CreateBackup creates node backup onder the specified file name. The
+method requires that the lotus daemon is running with the
+LOTUS_BACKUP_BASE_PATH environment variable set to some path, and that
+the path specified when calling CreateBackup is within the base path
+
+
+Perms: admin
+
+Inputs:
+```json
+[
+  "string value"
+]
+```
+
+Response: `{}`
 
 ## Gas
 
@@ -1274,8 +1326,8 @@ Inputs:
 [
   {
     "Version": 42,
-    "To": "t01234",
-    "From": "t01234",
+    "To": "f01234",
+    "From": "f01234",
     "Nonce": 42,
     "Value": "0",
     "GasLimit": 9,
@@ -1310,8 +1362,8 @@ Inputs:
 [
   {
     "Version": 42,
-    "To": "t01234",
-    "From": "t01234",
+    "To": "f01234",
+    "From": "f01234",
     "Nonce": 42,
     "Value": "0",
     "GasLimit": 9,
@@ -1344,7 +1396,7 @@ Inputs:
 ```json
 [
   42,
-  "t01234",
+  "f01234",
   9,
   [
     {
@@ -1370,8 +1422,8 @@ Inputs:
 [
   {
     "Version": 42,
-    "To": "t01234",
-    "From": "t01234",
+    "To": "f01234",
+    "From": "f01234",
     "Nonce": 42,
     "Value": "0",
     "GasLimit": 9,
@@ -1398,8 +1450,8 @@ Response:
 ```json
 {
   "Version": 42,
-  "To": "t01234",
-  "From": "t01234",
+  "To": "f01234",
+  "From": "f01234",
   "Nonce": 42,
   "Value": "0",
   "GasLimit": 9,
@@ -1461,8 +1513,8 @@ Perms: sign
 Inputs:
 ```json
 [
-  "t01234",
-  "t01234",
+  "f01234",
+  "f01234",
   "0"
 ]
 ```
@@ -1486,7 +1538,7 @@ Inputs:
 ```json
 [
   {
-    "Miner": "t01234",
+    "Miner": "f01234",
     "Parents": [
       {
         "/": "bafy2bzacea3wsdh6y3a36tb3skempjoxqpuyompjbmfeyf34fi3uy6uue42v4"
@@ -1515,7 +1567,7 @@ Response:
 ```json
 {
   "Header": {
-    "Miner": "t01234",
+    "Miner": "f01234",
     "Ticket": {
       "VRFProof": "Ynl0ZSBhcnJheQ=="
     },
@@ -1562,7 +1614,7 @@ Perms: read
 Inputs:
 ```json
 [
-  "t01234",
+  "f01234",
   10101,
   [
     {
@@ -1581,14 +1633,14 @@ Response:
   "MinerPower": "0",
   "NetworkPower": "0",
   "Sectors": null,
-  "WorkerKey": "t01234",
+  "WorkerKey": "f01234",
   "SectorSize": 34359738368,
   "PrevBeaconEntry": {
     "Round": 42,
     "Data": "Ynl0ZSBhcnJheQ=="
   },
   "BeaconEntries": null,
-  "HasMinPower": true
+  "EligibleForMining": true
 }
 ```
 
@@ -1642,7 +1694,7 @@ Perms: read
 Inputs:
 ```json
 [
-  "t01234"
+  "f01234"
 ]
 ```
 
@@ -1682,8 +1734,8 @@ Inputs:
   {
     "Message": {
       "Version": 42,
-      "To": "t01234",
-      "From": "t01234",
+      "To": "f01234",
+      "From": "f01234",
       "Nonce": 42,
       "Value": "0",
       "GasLimit": 9,
@@ -1723,8 +1775,8 @@ Inputs:
 [
   {
     "Version": 42,
-    "To": "t01234",
-    "From": "t01234",
+    "To": "f01234",
+    "From": "f01234",
     "Nonce": 42,
     "Value": "0",
     "GasLimit": 9,
@@ -1744,8 +1796,8 @@ Response:
 {
   "Message": {
     "Version": 42,
-    "To": "t01234",
-    "From": "t01234",
+    "To": "f01234",
+    "From": "f01234",
     "Nonce": 42,
     "Value": "0",
     "GasLimit": 9,
@@ -1758,6 +1810,43 @@ Response:
     "Type": 2,
     "Data": "Ynl0ZSBhcnJheQ=="
   }
+}
+```
+
+### MpoolPushUntrusted
+MpoolPushUntrusted pushes a signed message to mempool from untrusted sources.
+
+
+Perms: write
+
+Inputs:
+```json
+[
+  {
+    "Message": {
+      "Version": 42,
+      "To": "f01234",
+      "From": "f01234",
+      "Nonce": 42,
+      "Value": "0",
+      "GasLimit": 9,
+      "GasFeeCap": "0",
+      "GasPremium": "0",
+      "Method": 1,
+      "Params": "Ynl0ZSBhcnJheQ=="
+    },
+    "Signature": {
+      "Type": 2,
+      "Data": "Ynl0ZSBhcnJheQ=="
+    }
+  }
+]
+```
+
+Response:
+```json
+{
+  "/": "bafy2bzacea3wsdh6y3a36tb3skempjoxqpuyompjbmfeyf34fi3uy6uue42v4"
 }
 ```
 
@@ -1820,8 +1909,8 @@ Response:
   "Message": {
     "Message": {
       "Version": 42,
-      "To": "t01234",
-      "From": "t01234",
+      "To": "f01234",
+      "From": "f01234",
       "Nonce": 42,
       "Value": "0",
       "GasLimit": 9,
@@ -1854,11 +1943,11 @@ Perms: sign
 Inputs:
 ```json
 [
-  "t01234",
-  "t01234",
+  "f01234",
+  "f01234",
   42,
-  "t01234",
-  "t01234",
+  "f01234",
+  "f01234",
   true
 ]
 ```
@@ -1881,10 +1970,10 @@ Perms: sign
 Inputs:
 ```json
 [
-  "t01234",
-  "t01234",
+  "f01234",
+  "f01234",
   42,
-  "t01234",
+  "f01234",
   true
 ]
 ```
@@ -1907,9 +1996,9 @@ Perms: sign
 Inputs:
 ```json
 [
-  "t01234",
-  "t01234",
-  "t01234",
+  "f01234",
+  "f01234",
+  "f01234",
   true
 ]
 ```
@@ -1922,7 +2011,33 @@ Response:
 ```
 
 ### MsigApprove
-MsigApprove approves a previously-proposed multisig message
+MsigApprove approves a previously-proposed multisig message by transaction ID
+It takes the following params: <multisig address>, <proposed transaction ID> <signer address>
+
+
+Perms: sign
+
+Inputs:
+```json
+[
+  "f01234",
+  42,
+  "f01234"
+]
+```
+
+Response:
+```json
+{
+  "/": "bafy2bzacea3wsdh6y3a36tb3skempjoxqpuyompjbmfeyf34fi3uy6uue42v4"
+}
+```
+
+### MsigApproveTxnHash
+MsigApproveTxnHash approves a previously-proposed multisig message, specified
+using both transaction ID and a hash of the parameters used in the
+proposal. This method of approval can be used to ensure you only approve
+exactly the transaction you think you are.
 It takes the following params: <multisig address>, <proposed message ID>, <proposer address>, <recipient address>, <value to transfer>,
 <sender address of the approve msg>, <method to call in the proposed message>, <params to include in the proposed message>
 
@@ -1932,12 +2047,12 @@ Perms: sign
 Inputs:
 ```json
 [
-  "t01234",
+  "f01234",
   42,
-  "t01234",
-  "t01234",
+  "f01234",
+  "f01234",
   "0",
-  "t01234",
+  "f01234",
   42,
   "Ynl0ZSBhcnJheQ=="
 ]
@@ -1952,7 +2067,7 @@ Response:
 
 ### MsigCancel
 MsigCancel cancels a previously-proposed multisig message
-It takes the following params: <multisig address>, <proposed message ID>, <recipient address>, <value to transfer>,
+It takes the following params: <multisig address>, <proposed transaction ID>, <recipient address>, <value to transfer>,
 <sender address of the cancel msg>, <method to call in the proposed message>, <params to include in the proposed message>
 
 
@@ -1961,11 +2076,11 @@ Perms: sign
 Inputs:
 ```json
 [
-  "t01234",
+  "f01234",
   42,
-  "t01234",
+  "f01234",
   "0",
-  "t01234",
+  "f01234",
   42,
   "Ynl0ZSBhcnJheQ=="
 ]
@@ -1993,7 +2108,7 @@ Inputs:
   null,
   10101,
   "0",
-  "t01234",
+  "f01234",
   "0"
 ]
 ```
@@ -2014,7 +2129,7 @@ Perms: read
 Inputs:
 ```json
 [
-  "t01234",
+  "f01234",
   [
     {
       "/": "bafy2bzacea3wsdh6y3a36tb3skempjoxqpuyompjbmfeyf34fi3uy6uue42v4"
@@ -2038,7 +2153,7 @@ Perms: read
 Inputs:
 ```json
 [
-  "t01234",
+  "f01234",
   [
     {
       "/": "bafy2bzacea3wsdh6y3a36tb3skempjoxqpuyompjbmfeyf34fi3uy6uue42v4"
@@ -2060,6 +2175,36 @@ Inputs:
 
 Response: `"0"`
 
+### MsigGetVestingSchedule
+MsigGetVestingSchedule returns the vesting details of a given multisig.
+
+
+Perms: read
+
+Inputs:
+```json
+[
+  "f01234",
+  [
+    {
+      "/": "bafy2bzacea3wsdh6y3a36tb3skempjoxqpuyompjbmfeyf34fi3uy6uue42v4"
+    },
+    {
+      "/": "bafy2bzacebp3shtrn43k7g3unredz7fxn4gj533d3o43tqn2p2ipxxhrvchve"
+    }
+  ]
+]
+```
+
+Response:
+```json
+{
+  "InitialBalance": "0",
+  "StartEpoch": 10101,
+  "UnlockDuration": 10101
+}
+```
+
 ### MsigPropose
 MsigPropose proposes a multisig message
 It takes the following params: <multisig address>, <recipient address>, <value to transfer>,
@@ -2071,12 +2216,39 @@ Perms: sign
 Inputs:
 ```json
 [
-  "t01234",
-  "t01234",
+  "f01234",
+  "f01234",
   "0",
-  "t01234",
+  "f01234",
   42,
   "Ynl0ZSBhcnJheQ=="
+]
+```
+
+Response:
+```json
+{
+  "/": "bafy2bzacea3wsdh6y3a36tb3skempjoxqpuyompjbmfeyf34fi3uy6uue42v4"
+}
+```
+
+### MsigRemoveSigner
+MsigRemoveSigner proposes the removal of a signer from the multisig.
+It accepts the multisig to make the change on, the proposer address to
+send the message from, the address to be removed, and a boolean
+indicating whether or not the signing threshold should be lowered by one
+along with the address removal.
+
+
+Perms: sign
+
+Inputs:
+```json
+[
+  "f01234",
+  "f01234",
+  "f01234",
+  true
 ]
 ```
 
@@ -2098,12 +2270,12 @@ Perms: sign
 Inputs:
 ```json
 [
-  "t01234",
-  "t01234",
+  "f01234",
+  "f01234",
   42,
-  "t01234",
-  "t01234",
-  "t01234"
+  "f01234",
+  "f01234",
+  "f01234"
 ]
 ```
 
@@ -2125,11 +2297,11 @@ Perms: sign
 Inputs:
 ```json
 [
-  "t01234",
-  "t01234",
+  "f01234",
+  "f01234",
   42,
-  "t01234",
-  "t01234"
+  "f01234",
+  "f01234"
 ]
 ```
 
@@ -2151,10 +2323,10 @@ Perms: sign
 Inputs:
 ```json
 [
-  "t01234",
-  "t01234",
-  "t01234",
-  "t01234"
+  "f01234",
+  "f01234",
+  "f01234",
+  "f01234"
 ]
 ```
 
@@ -2362,7 +2534,7 @@ Perms: sign
 Inputs:
 ```json
 [
-  "t01234"
+  "f01234"
 ]
 ```
 
@@ -2373,14 +2545,19 @@ There are not yet any comments for this method.
 
 Perms: sign
 
-Inputs: `null`
+Inputs:
+```json
+[
+  "f01234"
+]
+```
 
 Response:
 ```json
 {
   "Channel": "\u003cempty\u003e",
-  "From": "t01234",
-  "To": "t01234",
+  "From": "f01234",
+  "To": "f01234",
   "ConfirmedAmt": "0",
   "PendingAmt": "0",
   "PendingWaitSentinel": null,
@@ -2397,7 +2574,8 @@ Perms: sign
 Inputs:
 ```json
 [
-  "t01234"
+  "f01234",
+  "f01234"
 ]
 ```
 
@@ -2405,8 +2583,8 @@ Response:
 ```json
 {
   "Channel": "\u003cempty\u003e",
-  "From": "t01234",
-  "To": "t01234",
+  "From": "f01234",
+  "To": "f01234",
   "ConfirmedAmt": "0",
   "PendingAmt": "0",
   "PendingWaitSentinel": null,
@@ -2423,7 +2601,7 @@ Perms: sign
 Inputs:
 ```json
 [
-  "t01234"
+  "f01234"
 ]
 ```
 
@@ -2442,8 +2620,8 @@ Perms: sign
 Inputs:
 ```json
 [
-  "t01234",
-  "t01234",
+  "f01234",
+  "f01234",
   "0"
 ]
 ```
@@ -2451,7 +2629,7 @@ Inputs:
 Response:
 ```json
 {
-  "Channel": "t01234",
+  "Channel": "f01234",
   "WaitSentinel": {
     "/": "bafy2bzacea3wsdh6y3a36tb3skempjoxqpuyompjbmfeyf34fi3uy6uue42v4"
   }
@@ -2472,7 +2650,7 @@ Inputs:
 ]
 ```
 
-Response: `"t01234"`
+Response: `"f01234"`
 
 ### PaychList
 There are not yet any comments for this method.
@@ -2491,8 +2669,8 @@ Perms: sign
 Inputs:
 ```json
 [
-  "t01234",
-  "t01234",
+  "f01234",
+  "f01234",
   null
 ]
 ```
@@ -2500,7 +2678,7 @@ Inputs:
 Response:
 ```json
 {
-  "Channel": "t01234",
+  "Channel": "f01234",
   "WaitSentinel": {
     "/": "bafy2bzacea3wsdh6y3a36tb3skempjoxqpuyompjbmfeyf34fi3uy6uue42v4"
   },
@@ -2516,7 +2694,7 @@ Perms: sign
 Inputs:
 ```json
 [
-  "t01234"
+  "f01234"
 ]
 ```
 
@@ -2535,14 +2713,14 @@ Perms: read
 Inputs:
 ```json
 [
-  "t01234"
+  "f01234"
 ]
 ```
 
 Response:
 ```json
 {
-  "ControlAddr": "t01234",
+  "ControlAddr": "f01234",
   "Direction": 1
 }
 ```
@@ -2555,14 +2733,14 @@ Perms: write
 Inputs:
 ```json
 [
-  "t01234",
+  "f01234",
   {
-    "ChannelAddr": "t01234",
+    "ChannelAddr": "f01234",
     "TimeLockMin": 10101,
     "TimeLockMax": 10101,
     "SecretPreimage": "Ynl0ZSBhcnJheQ==",
     "Extra": {
-      "Actor": "t01234",
+      "Actor": "f01234",
       "Method": 1,
       "Data": "Ynl0ZSBhcnJheQ=="
     },
@@ -2591,14 +2769,14 @@ Perms: read
 Inputs:
 ```json
 [
-  "t01234",
+  "f01234",
   {
-    "ChannelAddr": "t01234",
+    "ChannelAddr": "f01234",
     "TimeLockMin": 10101,
     "TimeLockMax": 10101,
     "SecretPreimage": "Ynl0ZSBhcnJheQ==",
     "Extra": {
-      "Actor": "t01234",
+      "Actor": "f01234",
       "Method": 1,
       "Data": "Ynl0ZSBhcnJheQ=="
     },
@@ -2627,14 +2805,14 @@ Perms: read
 Inputs:
 ```json
 [
-  "t01234",
+  "f01234",
   {
-    "ChannelAddr": "t01234",
+    "ChannelAddr": "f01234",
     "TimeLockMin": 10101,
     "TimeLockMax": 10101,
     "SecretPreimage": "Ynl0ZSBhcnJheQ==",
     "Extra": {
-      "Actor": "t01234",
+      "Actor": "f01234",
       "Method": 1,
       "Data": "Ynl0ZSBhcnJheQ=="
     },
@@ -2661,7 +2839,7 @@ Perms: sign
 Inputs:
 ```json
 [
-  "t01234",
+  "f01234",
   "0",
   42
 ]
@@ -2671,12 +2849,12 @@ Response:
 ```json
 {
   "Voucher": {
-    "ChannelAddr": "t01234",
+    "ChannelAddr": "f01234",
     "TimeLockMin": 10101,
     "TimeLockMax": 10101,
     "SecretPreimage": "Ynl0ZSBhcnJheQ==",
     "Extra": {
-      "Actor": "t01234",
+      "Actor": "f01234",
       "Method": 1,
       "Data": "Ynl0ZSBhcnJheQ=="
     },
@@ -2702,7 +2880,7 @@ Perms: write
 Inputs:
 ```json
 [
-  "t01234"
+  "f01234"
 ]
 ```
 
@@ -2716,14 +2894,14 @@ Perms: sign
 Inputs:
 ```json
 [
-  "t01234",
+  "f01234",
   {
-    "ChannelAddr": "t01234",
+    "ChannelAddr": "f01234",
     "TimeLockMin": 10101,
     "TimeLockMax": 10101,
     "SecretPreimage": "Ynl0ZSBhcnJheQ==",
     "Extra": {
-      "Actor": "t01234",
+      "Actor": "f01234",
       "Method": 1,
       "Data": "Ynl0ZSBhcnJheQ=="
     },
@@ -2764,7 +2942,7 @@ Perms: read
 Inputs:
 ```json
 [
-  "t01234",
+  "f01234",
   [
     {
       "/": "bafy2bzacea3wsdh6y3a36tb3skempjoxqpuyompjbmfeyf34fi3uy6uue42v4"
@@ -2776,7 +2954,7 @@ Inputs:
 ]
 ```
 
-Response: `"t01234"`
+Response: `"f01234"`
 
 ### StateAllMinerFaults
 StateAllMinerFaults returns all non-expired Faults that occur within lookback epochs of the given tipset
@@ -2812,8 +2990,8 @@ Inputs:
 [
   {
     "Version": 42,
-    "To": "t01234",
-    "From": "t01234",
+    "To": "f01234",
+    "From": "f01234",
     "Nonce": 42,
     "Value": "0",
     "GasLimit": 9,
@@ -2838,8 +3016,8 @@ Response:
 {
   "Msg": {
     "Version": 42,
-    "To": "t01234",
-    "From": "t01234",
+    "To": "f01234",
+    "From": "f01234",
     "Nonce": 42,
     "Value": "0",
     "GasLimit": 9,
@@ -2856,8 +3034,8 @@ Response:
   "ExecutionTrace": {
     "Msg": {
       "Version": 42,
-      "To": "t01234",
-      "From": "t01234",
+      "To": "f01234",
+      "From": "f01234",
       "Nonce": 42,
       "Value": "0",
       "GasLimit": 9,
@@ -2917,7 +3095,8 @@ Response:
 ```
 
 ### StateCirculatingSupply
-StateCirculatingSupply returns the circulating supply of Filecoin at the given tipset
+StateCirculatingSupply returns the exact circulating supply of Filecoin at the given tipset.
+This is not used anywhere in the protocol itself, and is only for external consumption.
 
 
 Perms: read
@@ -2936,16 +3115,7 @@ Inputs:
 ]
 ```
 
-Response:
-```json
-{
-  "FilVested": "0",
-  "FilMined": "0",
-  "FilBurnt": "0",
-  "FilLocked": "0",
-  "FilCirculating": "0"
-}
-```
+Response: `"0"`
 
 ### StateCompute
 StateCompute is a flexible command that applies the given messages on the given tipset.
@@ -3020,7 +3190,7 @@ Perms: read
 Inputs:
 ```json
 [
-  "t01234",
+  "f01234",
   [
     {
       "/": "bafy2bzacea3wsdh6y3a36tb3skempjoxqpuyompjbmfeyf34fi3uy6uue42v4"
@@ -3111,8 +3281,8 @@ Inputs:
 [
   {
     "Version": 42,
-    "To": "t01234",
-    "From": "t01234",
+    "To": "f01234",
+    "From": "f01234",
     "Nonce": 42,
     "Value": "0",
     "GasLimit": 9,
@@ -3166,7 +3336,7 @@ Perms: read
 Inputs:
 ```json
 [
-  "t01234",
+  "f01234",
   [
     {
       "/": "bafy2bzacea3wsdh6y3a36tb3skempjoxqpuyompjbmfeyf34fi3uy6uue42v4"
@@ -3178,7 +3348,7 @@ Inputs:
 ]
 ```
 
-Response: `"t01234"`
+Response: `"f01234"`
 
 ### StateMarketBalance
 StateMarketBalance looks up the Escrow and Locked balances of the given address in the Storage Market
@@ -3189,7 +3359,7 @@ Perms: read
 Inputs:
 ```json
 [
-  "t01234",
+  "f01234",
   [
     {
       "/": "bafy2bzacea3wsdh6y3a36tb3skempjoxqpuyompjbmfeyf34fi3uy6uue42v4"
@@ -3239,8 +3409,8 @@ Response:
       },
       "PieceSize": 1032,
       "VerifiedDeal": true,
-      "Client": "t01234",
-      "Provider": "t01234",
+      "Client": "f01234",
+      "Provider": "f01234",
       "Label": "string value",
       "StartEpoch": 10101,
       "EndEpoch": 10101,
@@ -3317,8 +3487,8 @@ Response:
     },
     "PieceSize": 1032,
     "VerifiedDeal": true,
-    "Client": "t01234",
-    "Provider": "t01234",
+    "Client": "f01234",
+    "Provider": "f01234",
     "Label": "string value",
     "StartEpoch": 10101,
     "EndEpoch": 10101,
@@ -3343,7 +3513,7 @@ Perms: read
 Inputs:
 ```json
 [
-  "t01234",
+  "f01234",
   [
     {
       "/": "bafy2bzacea3wsdh6y3a36tb3skempjoxqpuyompjbmfeyf34fi3uy6uue42v4"
@@ -3366,7 +3536,7 @@ Perms: read
 Inputs:
 ```json
 [
-  "t01234",
+  "f01234",
   [
     {
       "/": "bafy2bzacea3wsdh6y3a36tb3skempjoxqpuyompjbmfeyf34fi3uy6uue42v4"
@@ -3389,7 +3559,7 @@ Perms: read
 Inputs:
 ```json
 [
-  "t01234",
+  "f01234",
   [
     {
       "/": "bafy2bzacea3wsdh6y3a36tb3skempjoxqpuyompjbmfeyf34fi3uy6uue42v4"
@@ -3412,7 +3582,7 @@ Perms: read
 Inputs:
 ```json
 [
-  "t01234",
+  "f01234",
   [
     {
       "/": "bafy2bzacea3wsdh6y3a36tb3skempjoxqpuyompjbmfeyf34fi3uy6uue42v4"
@@ -3441,7 +3611,7 @@ Perms: read
 Inputs:
 ```json
 [
-  "t01234",
+  "f01234",
   [
     {
       "/": "bafy2bzacea3wsdh6y3a36tb3skempjoxqpuyompjbmfeyf34fi3uy6uue42v4"
@@ -3456,16 +3626,17 @@ Inputs:
 Response:
 ```json
 {
-  "Owner": "t01234",
-  "Worker": "t01234",
-  "NewWorker": "t01234",
+  "Owner": "f01234",
+  "Worker": "f01234",
+  "NewWorker": "f01234",
   "ControlAddresses": null,
   "WorkerChangeEpoch": 10101,
   "PeerId": "12D3KooWGzxzKZYveHXtpG6AsrUJBcWxHBFS2HsEoGTxrMLvKXtf",
   "Multiaddrs": null,
   "SealProofType": 3,
   "SectorSize": 34359738368,
-  "WindowPoStPartitionSectors": 42
+  "WindowPoStPartitionSectors": 42,
+  "ConsensusFaultElapsed": 10101
 }
 ```
 
@@ -3478,7 +3649,7 @@ Perms: read
 Inputs:
 ```json
 [
-  "t01234",
+  "f01234",
   {
     "SealProof": 3,
     "SectorNumber": 9,
@@ -3507,7 +3678,7 @@ Inputs:
 Response: `"0"`
 
 ### StateMinerPartitions
-StateMinerPartitions loads miner partitions for the specified miner/deadline
+StateMinerPartitions returns all partitions in the specified deadline
 
 
 Perms: read
@@ -3515,7 +3686,7 @@ Perms: read
 Inputs:
 ```json
 [
-  "t01234",
+  "f01234",
   42,
   [
     {
@@ -3539,7 +3710,7 @@ Perms: read
 Inputs:
 ```json
 [
-  "t01234",
+  "f01234",
   [
     {
       "/": "bafy2bzacea3wsdh6y3a36tb3skempjoxqpuyompjbmfeyf34fi3uy6uue42v4"
@@ -3561,7 +3732,8 @@ Response:
   "TotalPower": {
     "RawBytePower": "0",
     "QualityAdjPower": "0"
-  }
+  },
+  "HasMinPower": true
 }
 ```
 
@@ -3574,7 +3746,7 @@ Perms: read
 Inputs:
 ```json
 [
-  "t01234",
+  "f01234",
   {
     "SealProof": 3,
     "SectorNumber": 9,
@@ -3612,7 +3784,7 @@ Perms: read
 Inputs:
 ```json
 [
-  "t01234",
+  "f01234",
   [
     {
       "/": "bafy2bzacea3wsdh6y3a36tb3skempjoxqpuyompjbmfeyf34fi3uy6uue42v4"
@@ -3651,7 +3823,7 @@ Perms: read
 Inputs:
 ```json
 [
-  "t01234",
+  "f01234",
   [
     {
       "/": "bafy2bzacea3wsdh6y3a36tb3skempjoxqpuyompjbmfeyf34fi3uy6uue42v4"
@@ -3680,7 +3852,7 @@ Perms: read
 Inputs:
 ```json
 [
-  "t01234",
+  "f01234",
   [
     {
       "/": "bafy2bzacea3wsdh6y3a36tb3skempjoxqpuyompjbmfeyf34fi3uy6uue42v4"
@@ -3695,15 +3867,14 @@ Inputs:
 Response:
 ```json
 {
-  "Sectors": 42,
-  "Active": 42
+  "Live": 42,
+  "Active": 42,
+  "Faulty": 42
 }
 ```
 
 ### StateMinerSectors
 StateMinerSectors returns info about the given miner's sectors. If the filter bitfield is nil, all sectors are included.
-If the filterOut boolean is set to true, any sectors in the filter are excluded.
-If false, only those sectors in the filter are included.
 
 
 Perms: read
@@ -3711,11 +3882,10 @@ Perms: read
 Inputs:
 ```json
 [
-  "t01234",
+  "f01234",
   [
     0
   ],
-  true,
   [
     {
       "/": "bafy2bzacea3wsdh6y3a36tb3skempjoxqpuyompjbmfeyf34fi3uy6uue42v4"
@@ -3729,6 +3899,45 @@ Inputs:
 
 Response: `null`
 
+### StateMsgGasCost
+StateMsgGasCost searches for a message in the chain, and returns details of the messages gas costs, including the penalty and miner tip
+
+
+Perms: read
+
+Inputs:
+```json
+[
+  {
+    "/": "bafy2bzacea3wsdh6y3a36tb3skempjoxqpuyompjbmfeyf34fi3uy6uue42v4"
+  },
+  [
+    {
+      "/": "bafy2bzacea3wsdh6y3a36tb3skempjoxqpuyompjbmfeyf34fi3uy6uue42v4"
+    },
+    {
+      "/": "bafy2bzacebp3shtrn43k7g3unredz7fxn4gj533d3o43tqn2p2ipxxhrvchve"
+    }
+  ]
+]
+```
+
+Response:
+```json
+{
+  "Message": {
+    "/": "bafy2bzacea3wsdh6y3a36tb3skempjoxqpuyompjbmfeyf34fi3uy6uue42v4"
+  },
+  "GasUsed": "0",
+  "BaseFeeBurn": "0",
+  "OverEstimationBurn": "0",
+  "MinerPenalty": "0",
+  "MinerTip": "0",
+  "Refund": "0",
+  "TotalCost": "0"
+}
+```
+
 ### StateNetworkName
 StateNetworkName returns the name of the network the node is synced to
 
@@ -3739,6 +3948,28 @@ Inputs: `null`
 
 Response: `"lotus"`
 
+### StateNetworkVersion
+StateNetworkVersion returns the network version at the given tipset
+
+
+Perms: read
+
+Inputs:
+```json
+[
+  [
+    {
+      "/": "bafy2bzacea3wsdh6y3a36tb3skempjoxqpuyompjbmfeyf34fi3uy6uue42v4"
+    },
+    {
+      "/": "bafy2bzacebp3shtrn43k7g3unredz7fxn4gj533d3o43tqn2p2ipxxhrvchve"
+    }
+  ]
+]
+```
+
+Response: `5`
+
 ### StateReadState
 StateReadState returns the indicated actor's state.
 
@@ -3748,7 +3979,7 @@ Perms: read
 Inputs:
 ```json
 [
-  "t01234",
+  "f01234",
   [
     {
       "/": "bafy2bzacea3wsdh6y3a36tb3skempjoxqpuyompjbmfeyf34fi3uy6uue42v4"
@@ -3796,8 +4027,8 @@ Response:
 {
   "Msg": {
     "Version": 42,
-    "To": "t01234",
-    "From": "t01234",
+    "To": "f01234",
+    "From": "f01234",
     "Nonce": 42,
     "Value": "0",
     "GasLimit": 9,
@@ -3814,8 +4045,8 @@ Response:
   "ExecutionTrace": {
     "Msg": {
       "Version": 42,
-      "To": "t01234",
-      "From": "t01234",
+      "To": "f01234",
+      "From": "f01234",
       "Nonce": 42,
       "Value": "0",
       "GasLimit": 9,
@@ -3887,7 +4118,7 @@ Perms: read
 Inputs:
 ```json
 [
-  "t01234",
+  "f01234",
   9,
   [
     {
@@ -3919,7 +4150,7 @@ Perms: read
 Inputs:
 ```json
 [
-  "t01234",
+  "f01234",
   9,
   [
     {
@@ -3960,7 +4191,7 @@ Perms: read
 Inputs:
 ```json
 [
-  "t01234",
+  "f01234",
   9,
   [
     {
@@ -3990,7 +4221,7 @@ Perms: read
 Inputs:
 ```json
 [
-  "t01234",
+  "f01234",
   9,
   [
     {
@@ -4027,6 +4258,38 @@ Response:
 }
 ```
 
+### StateVMCirculatingSupplyInternal
+StateVMCirculatingSupplyInternal returns an approximation of the circulating supply of Filecoin at the given tipset.
+This is the value reported by the runtime interface to actors code.
+
+
+Perms: read
+
+Inputs:
+```json
+[
+  [
+    {
+      "/": "bafy2bzacea3wsdh6y3a36tb3skempjoxqpuyompjbmfeyf34fi3uy6uue42v4"
+    },
+    {
+      "/": "bafy2bzacebp3shtrn43k7g3unredz7fxn4gj533d3o43tqn2p2ipxxhrvchve"
+    }
+  ]
+]
+```
+
+Response:
+```json
+{
+  "FilVested": "0",
+  "FilMined": "0",
+  "FilBurnt": "0",
+  "FilLocked": "0",
+  "FilCirculating": "0"
+}
+```
+
 ### StateVerifiedClientStatus
 StateVerifiedClientStatus returns the data cap for the given address.
 Returns nil if there is no entry in the data cap table for the
@@ -4038,7 +4301,54 @@ Perms: read
 Inputs:
 ```json
 [
-  "t01234",
+  "f01234",
+  [
+    {
+      "/": "bafy2bzacea3wsdh6y3a36tb3skempjoxqpuyompjbmfeyf34fi3uy6uue42v4"
+    },
+    {
+      "/": "bafy2bzacebp3shtrn43k7g3unredz7fxn4gj533d3o43tqn2p2ipxxhrvchve"
+    }
+  ]
+]
+```
+
+Response: `"0"`
+
+### StateVerifiedRegistryRootKey
+StateVerifiedClientStatus returns the address of the Verified Registry's root key
+
+
+Perms: read
+
+Inputs:
+```json
+[
+  [
+    {
+      "/": "bafy2bzacea3wsdh6y3a36tb3skempjoxqpuyompjbmfeyf34fi3uy6uue42v4"
+    },
+    {
+      "/": "bafy2bzacebp3shtrn43k7g3unredz7fxn4gj533d3o43tqn2p2ipxxhrvchve"
+    }
+  ]
+]
+```
+
+Response: `"f01234"`
+
+### StateVerifierStatus
+StateVerifierStatus returns the data cap for the given address.
+Returns nil if there is no entry in the data cap table for the
+address.
+
+
+Perms: read
+
+Inputs:
+```json
+[
+  "f01234",
   [
     {
       "/": "bafy2bzacea3wsdh6y3a36tb3skempjoxqpuyompjbmfeyf34fi3uy6uue42v4"
@@ -4066,6 +4376,49 @@ Inputs:
     "/": "bafy2bzacea3wsdh6y3a36tb3skempjoxqpuyompjbmfeyf34fi3uy6uue42v4"
   },
   42
+]
+```
+
+Response:
+```json
+{
+  "Message": {
+    "/": "bafy2bzacea3wsdh6y3a36tb3skempjoxqpuyompjbmfeyf34fi3uy6uue42v4"
+  },
+  "Receipt": {
+    "ExitCode": 0,
+    "Return": "Ynl0ZSBhcnJheQ==",
+    "GasUsed": 9
+  },
+  "ReturnDec": {},
+  "TipSet": [
+    {
+      "/": "bafy2bzacea3wsdh6y3a36tb3skempjoxqpuyompjbmfeyf34fi3uy6uue42v4"
+    },
+    {
+      "/": "bafy2bzacebp3shtrn43k7g3unredz7fxn4gj533d3o43tqn2p2ipxxhrvchve"
+    }
+  ],
+  "Height": 10101
+}
+```
+
+### StateWaitMsgLimited
+StateWaitMsgLimited looks back up to limit epochs in the chain for a message.
+If not found, it blocks until the message arrives on chain, and gets to the
+indicated confidence depth.
+
+
+Perms: read
+
+Inputs:
+```json
+[
+  {
+    "/": "bafy2bzacea3wsdh6y3a36tb3skempjoxqpuyompjbmfeyf34fi3uy6uue42v4"
+  },
+  42,
+  10101
 ]
 ```
 
@@ -4150,7 +4503,7 @@ Inputs: `null`
 Response:
 ```json
 {
-  "Miner": "t01234",
+  "Miner": "f01234",
   "Ticket": {
     "VRFProof": "Ynl0ZSBhcnJheQ=="
   },
@@ -4215,7 +4568,8 @@ Inputs: `null`
 Response:
 ```json
 {
-  "ActiveSyncs": null
+  "ActiveSyncs": null,
+  "VMApplied": 42
 }
 ```
 
@@ -4231,7 +4585,7 @@ Inputs:
 [
   {
     "Header": {
-      "Miner": "t01234",
+      "Miner": "f01234",
       "Ticket": {
         "VRFProof": "Ynl0ZSBhcnJheQ=="
       },
@@ -4273,6 +4627,16 @@ Inputs:
 
 Response: `{}`
 
+### SyncUnmarkAllBad
+SyncUnmarkAllBad purges bad block cache, making it possible to sync to chains previously marked as bad
+
+
+Perms: admin
+
+Inputs: `null`
+
+Response: `{}`
+
 ### SyncUnmarkBad
 SyncUnmarkBad unmarks a blocks as bad, making it possible to be validated and synced again.
 
@@ -4290,6 +4654,28 @@ Inputs:
 
 Response: `{}`
 
+### SyncValidateTipset
+SyncValidateTipset indicates whether the provided tipset is valid or not
+
+
+Perms: read
+
+Inputs:
+```json
+[
+  [
+    {
+      "/": "bafy2bzacea3wsdh6y3a36tb3skempjoxqpuyompjbmfeyf34fi3uy6uue42v4"
+    },
+    {
+      "/": "bafy2bzacebp3shtrn43k7g3unredz7fxn4gj533d3o43tqn2p2ipxxhrvchve"
+    }
+  ]
+]
+```
+
+Response: `true`
+
 ## Wallet
 
 
@@ -4302,7 +4688,7 @@ Perms: read
 Inputs:
 ```json
 [
-  "t01234"
+  "f01234"
 ]
 ```
 
@@ -4316,7 +4702,7 @@ Perms: write
 
 Inputs: `null`
 
-Response: `"t01234"`
+Response: `"f01234"`
 
 ### WalletDelete
 WalletDelete deletes an address from the wallet.
@@ -4327,7 +4713,7 @@ Perms: write
 Inputs:
 ```json
 [
-  "t01234"
+  "f01234"
 ]
 ```
 
@@ -4342,14 +4728,14 @@ Perms: admin
 Inputs:
 ```json
 [
-  "t01234"
+  "f01234"
 ]
 ```
 
 Response:
 ```json
 {
-  "Type": "string value",
+  "Type": "bls",
   "PrivateKey": "Ynl0ZSBhcnJheQ=="
 }
 ```
@@ -4363,7 +4749,7 @@ Perms: write
 Inputs:
 ```json
 [
-  "t01234"
+  "f01234"
 ]
 ```
 
@@ -4379,13 +4765,13 @@ Inputs:
 ```json
 [
   {
-    "Type": "string value",
+    "Type": "bls",
     "PrivateKey": "Ynl0ZSBhcnJheQ=="
   }
 ]
 ```
 
-Response: `"t01234"`
+Response: `"f01234"`
 
 ### WalletList
 WalletList lists all the addresses in the wallet.
@@ -4399,6 +4785,8 @@ Response: `null`
 
 ### WalletNew
 WalletNew creates a new address in the wallet with the given sigType.
+Available key types: bls, secp256k1, secp256k1-ledger
+Support for numerical types: 1 - secp256k1, 2 - BLS is deprecated
 
 
 Perms: write
@@ -4406,11 +4794,11 @@ Perms: write
 Inputs:
 ```json
 [
-  2
+  "bls"
 ]
 ```
 
-Response: `"t01234"`
+Response: `"f01234"`
 
 ### WalletSetDefault
 WalletSetDefault marks the given address as as the default one.
@@ -4421,7 +4809,7 @@ Perms: admin
 Inputs:
 ```json
 [
-  "t01234"
+  "f01234"
 ]
 ```
 
@@ -4436,7 +4824,7 @@ Perms: sign
 Inputs:
 ```json
 [
-  "t01234",
+  "f01234",
   "Ynl0ZSBhcnJheQ=="
 ]
 ```
@@ -4458,11 +4846,11 @@ Perms: sign
 Inputs:
 ```json
 [
-  "t01234",
+  "f01234",
   {
     "Version": 42,
-    "To": "t01234",
-    "From": "t01234",
+    "To": "f01234",
+    "From": "f01234",
     "Nonce": 42,
     "Value": "0",
     "GasLimit": 9,
@@ -4479,8 +4867,8 @@ Response:
 {
   "Message": {
     "Version": 42,
-    "To": "t01234",
-    "From": "t01234",
+    "To": "f01234",
+    "From": "f01234",
     "Nonce": 42,
     "Value": "0",
     "GasLimit": 9,
@@ -4496,6 +4884,21 @@ Response:
 }
 ```
 
+### WalletValidateAddress
+WalletValidateAddress validates whether a given string can be decoded as a well-formed address
+
+
+Perms: read
+
+Inputs:
+```json
+[
+  "string value"
+]
+```
+
+Response: `"f01234"`
+
 ### WalletVerify
 WalletVerify takes an address, a signature, and some bytes, and indicates whether the signature is valid.
 The address does not have to be in the wallet.
@@ -4506,7 +4909,7 @@ Perms: read
 Inputs:
 ```json
 [
-  "t01234",
+  "f01234",
   "Ynl0ZSBhcnJheQ==",
   {
     "Type": 2,

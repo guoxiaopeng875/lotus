@@ -39,10 +39,28 @@ import (
 
 var log = logging.Logger("fullnode")
 
+type ChainModuleAPI interface {
+	ChainHead(context.Context) (*types.TipSet, error)
+	ChainGetTipSet(ctx context.Context, tsk types.TipSetKey) (*types.TipSet, error)
+	ChainGetTipSetByHeight(ctx context.Context, h abi.ChainEpoch, tsk types.TipSetKey) (*types.TipSet, error)
+}
+
+// ChainModule provides a default implementation of ChainModuleAPI.
+// It can be swapped out with another implementation through Dependency
+// Injection (for example with a thin RPC client).
+type ChainModule struct {
+	fx.In
+
+	Chain *store.ChainStore
+}
+
+var _ ChainModuleAPI = (*ChainModule)(nil)
+
 type ChainAPI struct {
 	fx.In
 
 	WalletAPI
+	ChainModuleAPI
 
 	Chain *store.ChainStore
 }
@@ -51,8 +69,8 @@ func (a *ChainAPI) ChainNotify(ctx context.Context) (<-chan []*api.HeadChange, e
 	return a.Chain.SubHeadChanges(ctx), nil
 }
 
-func (a *ChainAPI) ChainHead(context.Context) (*types.TipSet, error) {
-	return a.Chain.GetHeaviestTipSet(), nil
+func (m *ChainModule) ChainHead(context.Context) (*types.TipSet, error) {
+	return m.Chain.GetHeaviestTipSet(), nil
 }
 
 func (a *ChainAPI) ChainGetRandomnessFromTickets(ctx context.Context, tsk types.TipSetKey, personalization crypto.DomainSeparationTag, randEpoch abi.ChainEpoch, entropy []byte) (abi.Randomness, error) {
@@ -77,8 +95,8 @@ func (a *ChainAPI) ChainGetBlock(ctx context.Context, msg cid.Cid) (*types.Block
 	return a.Chain.GetBlock(msg)
 }
 
-func (a *ChainAPI) ChainGetTipSet(ctx context.Context, key types.TipSetKey) (*types.TipSet, error) {
-	return a.Chain.LoadTipSet(key)
+func (m *ChainModule) ChainGetTipSet(ctx context.Context, key types.TipSetKey) (*types.TipSet, error) {
+	return m.Chain.LoadTipSet(key)
 }
 
 func (a *ChainAPI) ChainGetBlockMessages(ctx context.Context, msg cid.Cid) (*api.BlockMessages, error) {
@@ -180,12 +198,12 @@ func (a *ChainAPI) ChainGetParentReceipts(ctx context.Context, bcid cid.Cid) ([]
 	return out, nil
 }
 
-func (a *ChainAPI) ChainGetTipSetByHeight(ctx context.Context, h abi.ChainEpoch, tsk types.TipSetKey) (*types.TipSet, error) {
-	ts, err := a.Chain.GetTipSetFromKey(tsk)
+func (m *ChainModule) ChainGetTipSetByHeight(ctx context.Context, h abi.ChainEpoch, tsk types.TipSetKey) (*types.TipSet, error) {
+	ts, err := m.Chain.GetTipSetFromKey(tsk)
 	if err != nil {
 		return nil, xerrors.Errorf("loading tipset %s: %w", tsk, err)
 	}
-	return a.Chain.GetTipsetByHeight(ctx, h, ts, true)
+	return m.Chain.GetTipsetByHeight(ctx, h, ts, true)
 }
 
 func (a *ChainAPI) ChainReadObj(ctx context.Context, obj cid.Cid) ([]byte, error) {
@@ -195,6 +213,10 @@ func (a *ChainAPI) ChainReadObj(ctx context.Context, obj cid.Cid) ([]byte, error
 	}
 
 	return blk.RawData(), nil
+}
+
+func (a *ChainAPI) ChainDeleteObj(ctx context.Context, obj cid.Cid) error {
+	return a.Chain.Blockstore().DeleteBlock(obj)
 }
 
 func (a *ChainAPI) ChainHasObj(ctx context.Context, obj cid.Cid) (bool, error) {
@@ -250,11 +272,31 @@ func (a *ChainAPI) ChainStatObj(ctx context.Context, obj cid.Cid, base cid.Cid) 
 }
 
 func (a *ChainAPI) ChainSetHead(ctx context.Context, tsk types.TipSetKey) error {
-	ts, err := a.Chain.GetTipSetFromKey(tsk)
+	newHeadTs, err := a.Chain.GetTipSetFromKey(tsk)
 	if err != nil {
 		return xerrors.Errorf("loading tipset %s: %w", tsk, err)
 	}
-	return a.Chain.SetHead(ts)
+
+	currentTs, err := a.ChainHead(ctx)
+	if err != nil {
+		return xerrors.Errorf("getting head: %w", err)
+	}
+
+	for currentTs.Height() >= newHeadTs.Height() {
+		for _, blk := range currentTs.Key().Cids() {
+			err = a.Chain.UnmarkBlockAsValidated(ctx, blk)
+			if err != nil {
+				return xerrors.Errorf("unmarking block as validated %s: %w", blk, err)
+			}
+		}
+
+		currentTs, err = a.ChainGetTipSet(ctx, currentTs.Parents())
+		if err != nil {
+			return xerrors.Errorf("loading tipset: %w", err)
+		}
+	}
+
+	return a.Chain.SetHead(newHeadTs)
 }
 
 func (a *ChainAPI) ChainGetGenesis(ctx context.Context) (*types.TipSet, error) {
@@ -281,6 +323,8 @@ func (s stringKey) Key() string {
 	return (string)(s)
 }
 
+// TODO: ActorUpgrade: this entire function is a problem (in theory) as we don't know the HAMT version.
+// In practice, hamt v0 should work "just fine" for reading.
 func resolveOnce(bs blockstore.Blockstore) func(ctx context.Context, ds ipld.NodeGetter, nd ipld.Node, names []string) (*ipld.Link, []string, error) {
 	return func(ctx context.Context, ds ipld.NodeGetter, nd ipld.Node, names []string) (*ipld.Link, []string, error) {
 		store := adt.WrapStore(ctx, cbor.NewCborStore(bs))
@@ -300,7 +344,7 @@ func resolveOnce(bs blockstore.Blockstore) func(ctx context.Context, ds ipld.Nod
 				return nil, nil, xerrors.Errorf("parsing int64: %w", err)
 			}
 
-			ik := adt.IntKey(i)
+			ik := abi.IntKey(i)
 
 			names[0] = "@H:" + ik.Key()
 		}
@@ -311,7 +355,7 @@ func resolveOnce(bs blockstore.Blockstore) func(ctx context.Context, ds ipld.Nod
 				return nil, nil, xerrors.Errorf("parsing uint64: %w", err)
 			}
 
-			ik := adt.UIntKey(i)
+			ik := abi.UIntKey(i)
 
 			names[0] = "@H:" + ik.Key()
 		}
@@ -418,7 +462,7 @@ func resolveOnce(bs blockstore.Blockstore) func(ctx context.Context, ds ipld.Nod
 				return nil, nil, xerrors.Errorf("getting actor head for @state: %w", err)
 			}
 
-			m, err := vm.DumpActorState(act.Code, head.RawData())
+			m, err := vm.DumpActorState(&act, head.RawData())
 			if err != nil {
 				return nil, nil, err
 			}
@@ -495,7 +539,7 @@ func (a *ChainAPI) ChainGetMessage(ctx context.Context, mc cid.Cid) (*types.Mess
 	return cm.VMMessage(), nil
 }
 
-func (a *ChainAPI) ChainExport(ctx context.Context, nroots abi.ChainEpoch, tsk types.TipSetKey) (<-chan []byte, error) {
+func (a *ChainAPI) ChainExport(ctx context.Context, nroots abi.ChainEpoch, skipoldmsgs bool, tsk types.TipSetKey) (<-chan []byte, error) {
 	ts, err := a.Chain.GetTipSetFromKey(tsk)
 	if err != nil {
 		return nil, xerrors.Errorf("loading tipset %s: %w", tsk, err)
@@ -503,15 +547,11 @@ func (a *ChainAPI) ChainExport(ctx context.Context, nroots abi.ChainEpoch, tsk t
 	r, w := io.Pipe()
 	out := make(chan []byte)
 	go func() {
-		defer w.Close() //nolint:errcheck // it is a pipe
-
 		bw := bufio.NewWriterSize(w, 1<<20)
-		defer bw.Flush() //nolint:errcheck // it is a write to a pipe
 
-		if err := a.Chain.Export(ctx, ts, nroots, bw); err != nil {
-			log.Errorf("chain export call failed: %s", err)
-			return
-		}
+		err := a.Chain.Export(ctx, ts, nroots, skipoldmsgs, bw)
+		bw.Flush()            //nolint:errcheck // it is a write to a pipe
+		w.CloseWithError(err) //nolint:errcheck // it is a pipe
 	}()
 
 	go func() {
@@ -523,13 +563,23 @@ func (a *ChainAPI) ChainExport(ctx context.Context, nroots abi.ChainEpoch, tsk t
 				log.Errorf("chain export pipe read failed: %s", err)
 				return
 			}
-			select {
-			case out <- buf[:n]:
-			case <-ctx.Done():
-				log.Warnf("export writer failed: %s", ctx.Err())
-				return
+			if n > 0 {
+				select {
+				case out <- buf[:n]:
+				case <-ctx.Done():
+					log.Warnf("export writer failed: %s", ctx.Err())
+					return
+				}
 			}
 			if err == io.EOF {
+				// send empty slice to indicate correct eof
+				select {
+				case out <- []byte{}:
+				case <-ctx.Done():
+					log.Warnf("export writer failed: %s", ctx.Err())
+					return
+				}
+
 				return
 			}
 		}

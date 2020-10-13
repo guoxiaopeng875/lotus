@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/filecoin-project/specs-actors/actors/runtime/proof"
+	proof0 "github.com/filecoin-project/specs-actors/actors/runtime/proof"
 
 	"github.com/filecoin-project/lotus/chain/gen/slashfilter"
 
@@ -33,6 +33,11 @@ import (
 
 var log = logging.Logger("miner")
 
+// Journal event types.
+const (
+	evtTypeBlockMined = iota
+)
+
 // returns a callback reporting whether we mined a blocks in this round
 type waitFunc func(ctx context.Context, baseTime uint64) (func(bool, abi.ChainEpoch, error), abi.ChainEpoch, error)
 
@@ -44,7 +49,7 @@ func randTimeOffset(width time.Duration) time.Duration {
 	return val - (width / 2)
 }
 
-func NewMiner(api api.FullNode, epp gen.WinningPoStProver, addr address.Address, sf *slashfilter.SlashFilter) *Miner {
+func NewMiner(api api.FullNode, epp gen.WinningPoStProver, addr address.Address, sf *slashfilter.SlashFilter, j journal.Journal) *Miner {
 	arc, err := lru.NewARC(10000)
 	if err != nil {
 		panic(err)
@@ -68,6 +73,10 @@ func NewMiner(api api.FullNode, epp gen.WinningPoStProver, addr address.Address,
 
 		sf:                sf,
 		minedBlockHeights: arc,
+		evtTypes: [...]journal.EventType{
+			evtTypeBlockMined: j.RegisterEventType("miner", "block_mined"),
+		},
+		journal: j,
 	}
 }
 
@@ -87,6 +96,9 @@ type Miner struct {
 
 	sf                *slashfilter.SlashFilter
 	minedBlockHeights *lru.ARCCache
+
+	evtTypes [1]journal.EventType
+	journal  journal.Journal
 }
 
 func (m *Miner) Address() address.Address {
@@ -129,6 +141,7 @@ func (m *Miner) niceSleep(d time.Duration) bool {
 	case <-build.Clock.After(d):
 		return true
 	case <-m.stop:
+		log.Infow("received interrupt while trying to sleep in mining cycle")
 		return false
 	}
 }
@@ -138,7 +151,7 @@ func (m *Miner) mine(ctx context.Context) {
 	defer span.End()
 
 	var lastBase MiningBase
-
+minerLoop:
 	for {
 		select {
 		case <-m.stop:
@@ -159,7 +172,9 @@ func (m *Miner) mine(ctx context.Context) {
 			prebase, err := m.GetBestMiningCandidate(ctx)
 			if err != nil {
 				log.Errorf("failed to get best mining candidate: %s", err)
-				m.niceSleep(time.Second * 5)
+				if !m.niceSleep(time.Second * 5) {
+					continue minerLoop
+				}
 				continue
 			}
 
@@ -189,25 +204,31 @@ func (m *Miner) mine(ctx context.Context) {
 			_, err = m.api.BeaconGetEntry(ctx, prebase.TipSet.Height()+prebase.NullRounds+1)
 			if err != nil {
 				log.Errorf("failed getting beacon entry: %s", err)
-				m.niceSleep(time.Second)
+				if !m.niceSleep(time.Second) {
+					continue minerLoop
+				}
 				continue
 			}
 
 			base = prebase
 		}
 
+		base.NullRounds += injectNulls // testing
+
 		if base.TipSet.Equals(lastBase.TipSet) && lastBase.NullRounds == base.NullRounds {
 			log.Warnf("BestMiningCandidate from the previous round: %s (nulls:%d)", lastBase.TipSet.Cids(), lastBase.NullRounds)
-			m.niceSleep(time.Duration(build.BlockDelaySecs) * time.Second)
+			if !m.niceSleep(time.Duration(build.BlockDelaySecs) * time.Second) {
+				continue minerLoop
+			}
 			continue
 		}
-
-		base.NullRounds += injectNulls // testing
 
 		b, err := m.mineOne(ctx, base)
 		if err != nil {
 			log.Errorf("mining block failed: %+v", err)
-			m.niceSleep(time.Second)
+			if !m.niceSleep(time.Second) {
+				continue minerLoop
+			}
 			onDone(false, 0, err)
 			continue
 		}
@@ -220,12 +241,14 @@ func (m *Miner) mine(ctx context.Context) {
 		onDone(b != nil, h, nil)
 
 		if b != nil {
-			journal.Add("blockMined", map[string]interface{}{
-				"parents":   base.TipSet.Cids(),
-				"nulls":     base.NullRounds,
-				"epoch":     b.Header.Height,
-				"timestamp": b.Header.Timestamp,
-				"cid":       b.Header.Cid(),
+			m.journal.RecordEvent(m.evtTypes[evtTypeBlockMined], func() interface{} {
+				return map[string]interface{}{
+					"parents":   base.TipSet.Cids(),
+					"nulls":     base.NullRounds,
+					"epoch":     b.Header.Height,
+					"timestamp": b.Header.Timestamp,
+					"cid":       b.Header.Cid(),
+				}
 			})
 
 			btime := time.Unix(int64(b.Header.Timestamp), 0)
@@ -306,6 +329,7 @@ func (m *Miner) GetBestMiningCandidate(ctx context.Context) (*MiningBase, error)
 		}
 		ltsw, err := m.api.ChainTipSetWeight(ctx, m.lastWork.TipSet.Key())
 		if err != nil {
+			m.lastWork = nil
 			return nil, err
 		}
 
@@ -341,7 +365,7 @@ func (m *Miner) mineOne(ctx context.Context, base *MiningBase) (*types.BlockMsg,
 	if mbi == nil {
 		return nil, nil
 	}
-	if !mbi.HasMinPower {
+	if !mbi.EligibleForMining {
 		// slashed or just have no power yet
 		return nil, nil
 	}
@@ -468,7 +492,7 @@ func (m *Miner) computeTicket(ctx context.Context, brand *types.BeaconEntry, bas
 }
 
 func (m *Miner) createBlock(base *MiningBase, addr address.Address, ticket *types.Ticket,
-	eproof *types.ElectionProof, bvals []types.BeaconEntry, wpostProof []proof.PoStProof, msgs []*types.SignedMessage) (*types.BlockMsg, error) {
+	eproof *types.ElectionProof, bvals []types.BeaconEntry, wpostProof []proof0.PoStProof, msgs []*types.SignedMessage) (*types.BlockMsg, error) {
 	uts := base.TipSet.MinTimestamp() + build.BlockDelaySecs*(uint64(base.NullRounds)+1)
 
 	nheight := base.TipSet.Height() + base.NullRounds + 1

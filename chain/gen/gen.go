@@ -9,12 +9,12 @@ import (
 	"time"
 
 	"github.com/filecoin-project/specs-actors/actors/runtime/proof"
+	"github.com/google/uuid"
 
 	"github.com/filecoin-project/go-address"
 	"github.com/filecoin-project/go-state-types/abi"
 	"github.com/filecoin-project/go-state-types/big"
 	"github.com/filecoin-project/go-state-types/crypto"
-	saminer "github.com/filecoin-project/specs-actors/actors/builtin/miner"
 	block "github.com/ipfs/go-block-format"
 	"github.com/ipfs/go-blockservice"
 	"github.com/ipfs/go-cid"
@@ -28,6 +28,7 @@ import (
 
 	"github.com/filecoin-project/lotus/api"
 	"github.com/filecoin-project/lotus/build"
+	"github.com/filecoin-project/lotus/chain/actors/policy"
 	"github.com/filecoin-project/lotus/chain/beacon"
 	genesis2 "github.com/filecoin-project/lotus/chain/gen/genesis"
 	"github.com/filecoin-project/lotus/chain/stmgr"
@@ -38,6 +39,7 @@ import (
 	"github.com/filecoin-project/lotus/cmd/lotus-seed/seed"
 	"github.com/filecoin-project/lotus/extern/sector-storage/ffiwrapper"
 	"github.com/filecoin-project/lotus/genesis"
+	"github.com/filecoin-project/lotus/journal"
 	"github.com/filecoin-project/lotus/lib/blockstore"
 	"github.com/filecoin-project/lotus/lib/sigs"
 	"github.com/filecoin-project/lotus/node/repo"
@@ -70,7 +72,7 @@ type ChainGen struct {
 
 	GetMessages func(*ChainGen) ([]*types.SignedMessage, error)
 
-	w *wallet.Wallet
+	w *wallet.LocalWallet
 
 	eppProvs    map[address.Address]WinningPoStProver
 	Miners      []address.Address
@@ -121,9 +123,9 @@ var DefaultRemainderAccountActor = genesis.Actor{
 }
 
 func NewGeneratorWithSectors(numSectors int) (*ChainGen, error) {
-	saminer.SupportedProofTypes = map[abi.RegisteredSealProof]struct{}{
-		abi.RegisteredSealProof_StackedDrg2KiBV1: {},
-	}
+	j := journal.NilJournal()
+	// TODO: we really shouldn't modify a global variable here.
+	policy.SetSupportedProofTypes(abi.RegisteredSealProof_StackedDrg2KiBV1)
 
 	mr := repo.NewMemory(nil)
 	lr, err := mr.Lock(repo.StorageMiner)
@@ -153,14 +155,14 @@ func NewGeneratorWithSectors(numSectors int) (*ChainGen, error) {
 		return nil, xerrors.Errorf("creating memrepo wallet failed: %w", err)
 	}
 
-	banker, err := w.GenerateKey(crypto.SigTypeSecp256k1)
+	banker, err := w.WalletNew(context.Background(), types.KTSecp256k1)
 	if err != nil {
 		return nil, xerrors.Errorf("failed to generate banker key: %w", err)
 	}
 
 	receievers := make([]address.Address, msgsPerBlock)
 	for r := range receievers {
-		receievers[r], err = w.GenerateKey(crypto.SigTypeBLS)
+		receievers[r], err = w.WalletNew(context.Background(), types.KTBLS)
 		if err != nil {
 			return nil, xerrors.Errorf("failed to generate receiver key: %w", err)
 		}
@@ -190,11 +192,11 @@ func NewGeneratorWithSectors(numSectors int) (*ChainGen, error) {
 		return nil, err
 	}
 
-	mk1, err := w.Import(k1)
+	mk1, err := w.WalletImport(context.Background(), k1)
 	if err != nil {
 		return nil, err
 	}
-	mk2, err := w.Import(k2)
+	mk2, err := w.WalletImport(context.Background(), k2)
 	if err != nil {
 		return nil, err
 	}
@@ -225,16 +227,16 @@ func NewGeneratorWithSectors(numSectors int) (*ChainGen, error) {
 		},
 		VerifregRootKey:  DefaultVerifregRootkeyActor,
 		RemainderAccount: DefaultRemainderAccountActor,
-		NetworkName:      "",
+		NetworkName:      uuid.New().String(),
 		Timestamp:        uint64(build.Clock.Now().Add(-500 * time.Duration(build.BlockDelaySecs) * time.Second).Unix()),
 	}
 
-	genb, err := genesis2.MakeGenesisBlock(context.TODO(), bs, sys, tpl)
+	genb, err := genesis2.MakeGenesisBlock(context.TODO(), j, bs, sys, tpl)
 	if err != nil {
 		return nil, xerrors.Errorf("make genesis block failed: %w", err)
 	}
 
-	cs := store.NewChainStore(bs, ds, sys)
+	cs := store.NewChainStore(bs, ds, sys, j)
 
 	genfb := &types.FullBlock{Header: genb.Genesis}
 	gents := store.NewFullTipSet([]*types.FullBlock{genfb})
@@ -374,7 +376,13 @@ func (cg *ChainGen) nextBlockProof(ctx context.Context, pts *types.TipSet, m add
 		return nil, nil, nil, xerrors.Errorf("get miner worker: %w", err)
 	}
 
-	vrfout, err := ComputeVRF(ctx, cg.w.Sign, worker, ticketRand)
+	sf := func(ctx context.Context, a address.Address, i []byte) (*crypto.Signature, error) {
+		return cg.w.WalletSign(ctx, a, i, api.MsgMeta{
+			Type: api.MTUnknown,
+		})
+	}
+
+	vrfout, err := ComputeVRF(ctx, sf, worker, ticketRand)
 	if err != nil {
 		return nil, nil, nil, xerrors.Errorf("compute VRF: %w", err)
 	}
@@ -489,13 +497,16 @@ func (cg *ChainGen) makeBlock(parents *types.TipSet, m address.Address, vrfticke
 // ResyncBankerNonce is used for dealing with messages made when
 // simulating forks
 func (cg *ChainGen) ResyncBankerNonce(ts *types.TipSet) error {
-	var act types.Actor
-	err := cg.sm.WithParentState(ts, cg.sm.WithActor(cg.banker, stmgr.GetActor(&act)))
+	st, err := cg.sm.ParentState(ts)
 	if err != nil {
 		return err
 	}
-
+	act, err := st.GetActor(cg.banker)
+	if err != nil {
+		return err
+	}
 	cg.bankerNonce = act.Nonce
+
 	return nil
 }
 
@@ -503,7 +514,7 @@ func (cg *ChainGen) Banker() address.Address {
 	return cg.banker
 }
 
-func (cg *ChainGen) Wallet() *wallet.Wallet {
+func (cg *ChainGen) Wallet() *wallet.LocalWallet {
 	return cg.w
 }
 
@@ -525,7 +536,9 @@ func getRandomMessages(cg *ChainGen) ([]*types.SignedMessage, error) {
 			GasPremium: types.NewInt(0),
 		}
 
-		sig, err := cg.w.Sign(context.TODO(), cg.banker, msg.Cid().Bytes())
+		sig, err := cg.w.WalletSign(context.TODO(), cg.banker, msg.Cid().Bytes(), api.MsgMeta{
+			Type: api.MTUnknown, // testing
+		})
 		if err != nil {
 			return nil, err
 		}
@@ -556,7 +569,7 @@ type MiningCheckAPI interface {
 }
 
 type mca struct {
-	w   *wallet.Wallet
+	w   *wallet.LocalWallet
 	sm  *stmgr.StateManager
 	pv  ffiwrapper.Verifier
 	bcn beacon.Schedule
@@ -585,7 +598,9 @@ func (mca mca) MinerGetBaseInfo(ctx context.Context, maddr address.Address, epoc
 }
 
 func (mca mca) WalletSign(ctx context.Context, a address.Address, v []byte) (*crypto.Signature, error) {
-	return mca.w.Sign(ctx, a, v)
+	return mca.w.WalletSign(ctx, a, v, api.MsgMeta{
+		Type: api.MTUnknown,
+	})
 }
 
 type WinningPoStProver interface {
