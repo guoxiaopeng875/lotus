@@ -46,6 +46,7 @@
   * [ClientMinerQueryOffer](#ClientMinerQueryOffer)
   * [ClientQueryAsk](#ClientQueryAsk)
   * [ClientRemoveImport](#ClientRemoveImport)
+  * [ClientRestartDataTransfer](#ClientRestartDataTransfer)
   * [ClientRetrieve](#ClientRetrieve)
   * [ClientRetrieveTryRestartInsufficientFunds](#ClientRetrieveTryRestartInsufficientFunds)
   * [ClientRetrieveWithEvents](#ClientRetrieveWithEvents)
@@ -227,7 +228,7 @@ Response:
 ```json
 {
   "Version": "string value",
-  "APIVersion": 4096,
+  "APIVersion": 4352,
   "BlockDelay": 42
 }
 ```
@@ -463,7 +464,10 @@ Response:
   "GasFeeCap": "0",
   "GasPremium": "0",
   "Method": 1,
-  "Params": "Ynl0ZSBhcnJheQ=="
+  "Params": "Ynl0ZSBhcnJheQ==",
+  "CID": {
+    "/": "bafy2bzacebbpdegvr3i4cosewthysg5xkxpqfn2wfcz6mv2hmoktwbdxkax4s"
+  }
 }
 ```
 
@@ -1161,6 +1165,23 @@ Inputs:
 
 Response: `{}`
 
+### ClientRestartDataTransfer
+ClientRestartDataTransfer attempts to restart a data transfer with the given transfer ID and other peer
+
+
+Perms: write
+
+Inputs:
+```json
+[
+  3,
+  "12D3KooWGzxzKZYveHXtpG6AsrUJBcWxHBFS2HsEoGTxrMLvKXtf",
+  true
+]
+```
+
+Response: `{}`
+
 ### ClientRetrieve
 ClientRetrieve initiates the retrieval of a file, as specified in the order.
 
@@ -1334,7 +1355,10 @@ Inputs:
     "GasFeeCap": "0",
     "GasPremium": "0",
     "Method": 1,
-    "Params": "Ynl0ZSBhcnJheQ=="
+    "Params": "Ynl0ZSBhcnJheQ==",
+    "CID": {
+      "/": "bafy2bzacebbpdegvr3i4cosewthysg5xkxpqfn2wfcz6mv2hmoktwbdxkax4s"
+    }
   },
   9,
   [
@@ -1370,7 +1394,10 @@ Inputs:
     "GasFeeCap": "0",
     "GasPremium": "0",
     "Method": 1,
-    "Params": "Ynl0ZSBhcnJheQ=="
+    "Params": "Ynl0ZSBhcnJheQ==",
+    "CID": {
+      "/": "bafy2bzacebbpdegvr3i4cosewthysg5xkxpqfn2wfcz6mv2hmoktwbdxkax4s"
+    }
   },
   [
     {
@@ -1430,7 +1457,10 @@ Inputs:
     "GasFeeCap": "0",
     "GasPremium": "0",
     "Method": 1,
-    "Params": "Ynl0ZSBhcnJheQ=="
+    "Params": "Ynl0ZSBhcnJheQ==",
+    "CID": {
+      "/": "bafy2bzacebbpdegvr3i4cosewthysg5xkxpqfn2wfcz6mv2hmoktwbdxkax4s"
+    }
   },
   {
     "MaxFee": "0"
@@ -1458,7 +1488,10 @@ Response:
   "GasFeeCap": "0",
   "GasPremium": "0",
   "Method": 1,
-  "Params": "Ynl0ZSBhcnJheQ=="
+  "Params": "Ynl0ZSBhcnJheQ==",
+  "CID": {
+    "/": "bafy2bzacebbpdegvr3i4cosewthysg5xkxpqfn2wfcz6mv2hmoktwbdxkax4s"
+  }
 }
 ```
 
@@ -1742,11 +1775,17 @@ Inputs:
       "GasFeeCap": "0",
       "GasPremium": "0",
       "Method": 1,
-      "Params": "Ynl0ZSBhcnJheQ=="
+      "Params": "Ynl0ZSBhcnJheQ==",
+      "CID": {
+        "/": "bafy2bzacebbpdegvr3i4cosewthysg5xkxpqfn2wfcz6mv2hmoktwbdxkax4s"
+      }
     },
     "Signature": {
       "Type": 2,
       "Data": "Ynl0ZSBhcnJheQ=="
+    },
+    "CID": {
+      "/": "bafy2bzacebbpdegvr3i4cosewthysg5xkxpqfn2wfcz6mv2hmoktwbdxkax4s"
     }
   }
 ]
@@ -1783,7 +1822,10 @@ Inputs:
     "GasFeeCap": "0",
     "GasPremium": "0",
     "Method": 1,
-    "Params": "Ynl0ZSBhcnJheQ=="
+    "Params": "Ynl0ZSBhcnJheQ==",
+    "CID": {
+      "/": "bafy2bzacebbpdegvr3i4cosewthysg5xkxpqfn2wfcz6mv2hmoktwbdxkax4s"
+    }
   },
   {
     "MaxFee": "0"
@@ -1804,11 +1846,17 @@ Response:
     "GasFeeCap": "0",
     "GasPremium": "0",
     "Method": 1,
-    "Params": "Ynl0ZSBhcnJheQ=="
+    "Params": "Ynl0ZSBhcnJheQ==",
+    "CID": {
+      "/": "bafy2bzacebbpdegvr3i4cosewthysg5xkxpqfn2wfcz6mv2hmoktwbdxkax4s"
+    }
   },
   "Signature": {
     "Type": 2,
     "Data": "Ynl0ZSBhcnJheQ=="
+  },
+  "CID": {
+    "/": "bafy2bzacebbpdegvr3i4cosewthysg5xkxpqfn2wfcz6mv2hmoktwbdxkax4s"
   }
 }
 ```
@@ -1833,11 +1881,17 @@ Inputs:
       "GasFeeCap": "0",
       "GasPremium": "0",
       "Method": 1,
-      "Params": "Ynl0ZSBhcnJheQ=="
+      "Params": "Ynl0ZSBhcnJheQ==",
+      "CID": {
+        "/": "bafy2bzacebbpdegvr3i4cosewthysg5xkxpqfn2wfcz6mv2hmoktwbdxkax4s"
+      }
     },
     "Signature": {
       "Type": 2,
       "Data": "Ynl0ZSBhcnJheQ=="
+    },
+    "CID": {
+      "/": "bafy2bzacebbpdegvr3i4cosewthysg5xkxpqfn2wfcz6mv2hmoktwbdxkax4s"
     }
   }
 ]
@@ -1917,11 +1971,17 @@ Response:
       "GasFeeCap": "0",
       "GasPremium": "0",
       "Method": 1,
-      "Params": "Ynl0ZSBhcnJheQ=="
+      "Params": "Ynl0ZSBhcnJheQ==",
+      "CID": {
+        "/": "bafy2bzacebbpdegvr3i4cosewthysg5xkxpqfn2wfcz6mv2hmoktwbdxkax4s"
+      }
     },
     "Signature": {
       "Type": 2,
       "Data": "Ynl0ZSBhcnJheQ=="
+    },
+    "CID": {
+      "/": "bafy2bzacebbpdegvr3i4cosewthysg5xkxpqfn2wfcz6mv2hmoktwbdxkax4s"
     }
   }
 }
@@ -2998,7 +3058,10 @@ Inputs:
     "GasFeeCap": "0",
     "GasPremium": "0",
     "Method": 1,
-    "Params": "Ynl0ZSBhcnJheQ=="
+    "Params": "Ynl0ZSBhcnJheQ==",
+    "CID": {
+      "/": "bafy2bzacebbpdegvr3i4cosewthysg5xkxpqfn2wfcz6mv2hmoktwbdxkax4s"
+    }
   },
   [
     {
@@ -3014,6 +3077,9 @@ Inputs:
 Response:
 ```json
 {
+  "MsgCid": {
+    "/": "bafy2bzacea3wsdh6y3a36tb3skempjoxqpuyompjbmfeyf34fi3uy6uue42v4"
+  },
   "Msg": {
     "Version": 42,
     "To": "f01234",
@@ -3024,7 +3090,10 @@ Response:
     "GasFeeCap": "0",
     "GasPremium": "0",
     "Method": 1,
-    "Params": "Ynl0ZSBhcnJheQ=="
+    "Params": "Ynl0ZSBhcnJheQ==",
+    "CID": {
+      "/": "bafy2bzacebbpdegvr3i4cosewthysg5xkxpqfn2wfcz6mv2hmoktwbdxkax4s"
+    }
   },
   "MsgRct": {
     "ExitCode": 0,
@@ -3042,7 +3111,10 @@ Response:
       "GasFeeCap": "0",
       "GasPremium": "0",
       "Method": 1,
-      "Params": "Ynl0ZSBhcnJheQ=="
+      "Params": "Ynl0ZSBhcnJheQ==",
+      "CID": {
+        "/": "bafy2bzacebbpdegvr3i4cosewthysg5xkxpqfn2wfcz6mv2hmoktwbdxkax4s"
+      }
     },
     "MsgRct": {
       "ExitCode": 0,
@@ -3289,7 +3361,10 @@ Inputs:
     "GasFeeCap": "0",
     "GasPremium": "0",
     "Method": 1,
-    "Params": "Ynl0ZSBhcnJheQ=="
+    "Params": "Ynl0ZSBhcnJheQ==",
+    "CID": {
+      "/": "bafy2bzacebbpdegvr3i4cosewthysg5xkxpqfn2wfcz6mv2hmoktwbdxkax4s"
+    }
   },
   [
     {
@@ -4025,6 +4100,9 @@ Inputs:
 Response:
 ```json
 {
+  "MsgCid": {
+    "/": "bafy2bzacea3wsdh6y3a36tb3skempjoxqpuyompjbmfeyf34fi3uy6uue42v4"
+  },
   "Msg": {
     "Version": 42,
     "To": "f01234",
@@ -4035,7 +4113,10 @@ Response:
     "GasFeeCap": "0",
     "GasPremium": "0",
     "Method": 1,
-    "Params": "Ynl0ZSBhcnJheQ=="
+    "Params": "Ynl0ZSBhcnJheQ==",
+    "CID": {
+      "/": "bafy2bzacebbpdegvr3i4cosewthysg5xkxpqfn2wfcz6mv2hmoktwbdxkax4s"
+    }
   },
   "MsgRct": {
     "ExitCode": 0,
@@ -4053,7 +4134,10 @@ Response:
       "GasFeeCap": "0",
       "GasPremium": "0",
       "Method": 1,
-      "Params": "Ynl0ZSBhcnJheQ=="
+      "Params": "Ynl0ZSBhcnJheQ==",
+      "CID": {
+        "/": "bafy2bzacebbpdegvr3i4cosewthysg5xkxpqfn2wfcz6mv2hmoktwbdxkax4s"
+      }
     },
     "MsgRct": {
       "ExitCode": 0,
@@ -4857,7 +4941,10 @@ Inputs:
     "GasFeeCap": "0",
     "GasPremium": "0",
     "Method": 1,
-    "Params": "Ynl0ZSBhcnJheQ=="
+    "Params": "Ynl0ZSBhcnJheQ==",
+    "CID": {
+      "/": "bafy2bzacebbpdegvr3i4cosewthysg5xkxpqfn2wfcz6mv2hmoktwbdxkax4s"
+    }
   }
 ]
 ```
@@ -4875,11 +4962,17 @@ Response:
     "GasFeeCap": "0",
     "GasPremium": "0",
     "Method": 1,
-    "Params": "Ynl0ZSBhcnJheQ=="
+    "Params": "Ynl0ZSBhcnJheQ==",
+    "CID": {
+      "/": "bafy2bzacebbpdegvr3i4cosewthysg5xkxpqfn2wfcz6mv2hmoktwbdxkax4s"
+    }
   },
   "Signature": {
     "Type": 2,
     "Data": "Ynl0ZSBhcnJheQ=="
+  },
+  "CID": {
+    "/": "bafy2bzacebbpdegvr3i4cosewthysg5xkxpqfn2wfcz6mv2hmoktwbdxkax4s"
   }
 }
 ```
