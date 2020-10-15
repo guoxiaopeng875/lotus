@@ -291,10 +291,10 @@ func (p *Processor) persistMiners(ctx context.Context, miners []minerActorInfo) 
 		return p.storeMinerSectorInfo(ctx, miners, sectorEvents)
 	})
 
-	grp.Go(func() error {
+	/*grp.Go(func() error {
 		defer close(partitionEvents)
 		return p.getMinerPartitionsDifferences(ctx, miners, partitionEvents)
-	})
+	})*/
 
 	return grp.Wait()
 }
