@@ -11,7 +11,7 @@ import (
 var log = logging.Logger("chainwatch")
 
 func main() {
-	if err := logging.SetLogLevel("*", "info"); err != nil {
+	if err := logging.SetLogLevel("*", "debug"); err != nil {
 		log.Fatal(err)
 	}
 	log.Info("Starting chainwatch", " v", build.UserVersion())
