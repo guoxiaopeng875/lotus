@@ -609,7 +609,7 @@ func (p *Processor) storeMinerSectorEvents(ctx context.Context, sectorEvents, pr
 		innerGrp, _ := errgroup.WithContext(ctx)
 		for mse := range partitionEvents {
 			mse := mse
-			grp.Go(func() error {
+			innerGrp.Go(func() error {
 				for _, sid := range mse.SectorIDs {
 					if _, err := stmt.Exec(
 						mse.MinerID.String(),
