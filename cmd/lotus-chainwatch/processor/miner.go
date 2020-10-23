@@ -710,112 +710,112 @@ func (p *Processor) diffMinerPartitions(ctx context.Context, m minerActorInfo, e
 	// where len(newPartitions) != len(oldPartitions).
 	/*
 
-			// NOTE: If we change the number of deadlines in an upgrade, this will
-			// break.
+		// NOTE: If we change the number of deadlines in an upgrade, this will
+		// break.
 
-			// load the old deadline
-			prevDls, err := prevMiner.LoadDeadlines(p.ctxStore)
+		// load the old deadline
+		prevDls, err := prevMiner.LoadDeadlines(p.ctxStore)
+		if err != nil {
+			return err
+		}
+		var prevDl miner.Deadline
+		if err := p.ctxStore.Get(ctx, prevDls.Due[dlIdx], &prevDl); err != nil {
+			return err
+		}
+
+		prevPartitions, err := prevDl.PartitionsArray(p.ctxStore)
+		if err != nil {
+			return err
+		}
+
+		// load the new deadline
+		curDls, err := curMiner.LoadDeadlines(p.ctxStore)
+		if err != nil {
+			return err
+		}
+
+		var curDl miner.Deadline
+		if err := p.ctxStore.Get(ctx, curDls.Due[dlIdx], &curDl); err != nil {
+			return err
+		}
+
+		curPartitions, err := curDl.PartitionsArray(p.ctxStore)
+		if err != nil {
+			return err
+		}
+
+		// TODO this can be optimized by inspecting the miner state for partitions that have changed and only inspecting those.
+		var prevPart miner.Partition
+		if err := prevPartitions.ForEach(&prevPart, func(i int64) error {
+			var curPart miner.Partition
+			if found, err := curPartitions.Get(uint64(i), &curPart); err != nil {
+				return err
+			} else if !found {
+				log.Fatal("I don't know what this means, are partitions ever removed?")
+			}
+			partitionDiff, err := p.diffPartition(prevPart, curPart)
 			if err != nil {
 				return err
 			}
-			var prevDl miner.Deadline
-			if err := p.ctxStore.Get(ctx, prevDls.Due[dlIdx], &prevDl); err != nil {
-				return err
-			}
 
-			prevPartitions, err := prevDl.PartitionsArray(p.ctxStore)
+			recovered, err := partitionDiff.Recovered.All(miner.SectorsMax)
 			if err != nil {
 				return err
 			}
-
-			// load the new deadline
-			curDls, err := curMiner.LoadDeadlines(p.ctxStore)
+			events <- &MinerSectorsEvent{
+				MinerID:   m.common.addr,
+				StateRoot: m.common.stateroot,
+				SectorIDs: recovered,
+				Event:     SectorRecovered,
+			}
+			inRecovery, err := partitionDiff.InRecovery.All(miner.SectorsMax)
 			if err != nil {
 				return err
 			}
-
-			var curDl miner.Deadline
-			if err := p.ctxStore.Get(ctx, curDls.Due[dlIdx], &curDl); err != nil {
-				return err
+			events <- &MinerSectorsEvent{
+				MinerID:   m.common.addr,
+				StateRoot: m.common.stateroot,
+				SectorIDs: inRecovery,
+				Event:     SectorRecovering,
 			}
-
-			curPartitions, err := curDl.PartitionsArray(p.ctxStore)
+			faulted, err := partitionDiff.Faulted.All(miner.SectorsMax)
 			if err != nil {
 				return err
 			}
-
-			// TODO this can be optimized by inspecting the miner state for partitions that have changed and only inspecting those.
-			var prevPart miner.Partition
-			if err := prevPartitions.ForEach(&prevPart, func(i int64) error {
-				var curPart miner.Partition
-				if found, err := curPartitions.Get(uint64(i), &curPart); err != nil {
-					return err
-				} else if !found {
-					log.Fatal("I don't know what this means, are partitions ever removed?")
-				}
-				partitionDiff, err := p.diffPartition(prevPart, curPart)
-				if err != nil {
-					return err
-				}
-
-				recovered, err := partitionDiff.Recovered.All(miner.SectorsMax)
-				if err != nil {
-					return err
-				}
-				events <- &MinerSectorsEvent{
-					MinerID:   m.common.addr,
-					StateRoot: m.common.stateroot,
-					SectorIDs: recovered,
-					Event:     SectorRecovered,
-				}
-				inRecovery, err := partitionDiff.InRecovery.All(miner.SectorsMax)
-				if err != nil {
-					return err
-				}
-				events <- &MinerSectorsEvent{
-					MinerID:   m.common.addr,
-					StateRoot: m.common.stateroot,
-					SectorIDs: inRecovery,
-					Event:     SectorRecovering,
-				}
-				faulted, err := partitionDiff.Faulted.All(miner.SectorsMax)
-				if err != nil {
-					return err
-				}
-				events <- &MinerSectorsEvent{
-					MinerID:   m.common.addr,
-					StateRoot: m.common.stateroot,
-					SectorIDs: faulted,
-					Event:     SectorFaulted,
-				}
-				terminated, err := partitionDiff.Terminated.All(miner.SectorsMax)
-				if err != nil {
-					return err
-				}
-				events <- &MinerSectorsEvent{
-					MinerID:   m.common.addr,
-					StateRoot: m.common.stateroot,
-					SectorIDs: terminated,
-					Event:     SectorTerminated,
-				}
-				expired, err := partitionDiff.Expired.All(miner.SectorsMax)
-				if err != nil {
-					return err
-				}
-				events <- &MinerSectorsEvent{
-					MinerID:   m.common.addr,
-					StateRoot: m.common.stateroot,
-					SectorIDs: expired,
-					Event:     SectorExpired,
-				}
-
-				return nil
-			}); err != nil {
+			events <- &MinerSectorsEvent{
+				MinerID:   m.common.addr,
+				StateRoot: m.common.stateroot,
+				SectorIDs: faulted,
+				Event:     SectorFaulted,
+			}
+			terminated, err := partitionDiff.Terminated.All(miner.SectorsMax)
+			if err != nil {
 				return err
 			}
+			events <- &MinerSectorsEvent{
+				MinerID:   m.common.addr,
+				StateRoot: m.common.stateroot,
+				SectorIDs: terminated,
+				Event:     SectorTerminated,
+			}
+			expired, err := partitionDiff.Expired.All(miner.SectorsMax)
+			if err != nil {
+				return err
+			}
+			events <- &MinerSectorsEvent{
+				MinerID:   m.common.addr,
+				StateRoot: m.common.stateroot,
+				SectorIDs: expired,
+				Event:     SectorExpired,
+			}
 
-		return nil
+			return nil
+		}); err != nil {
+			return err
+		}
+
 	*/
+	return nil
 }
 
 func (p *Processor) diffPartition(prevPart, curPart miner.Partition) (*PartitionStatus, error) {
