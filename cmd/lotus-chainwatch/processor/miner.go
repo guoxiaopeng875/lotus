@@ -291,10 +291,10 @@ func (p *Processor) persistMiners(ctx context.Context, miners []minerActorInfo) 
 		return p.storeMinerSectorInfo(ctx, miners, sectorEvents)
 	})
 
-	/*grp.Go(func() error {
-		defer close(partitionEvents)
-		return p.getMinerPartitionsDifferences(ctx, miners, partitionEvents)
-	})*/
+	//grp.Go(func() error {
+	//	defer close(partitionEvents)
+	//	return p.getMinerPartitionsDifferences(ctx, miners, partitionEvents)
+	//})
 
 	return grp.Wait()
 }
@@ -586,7 +586,6 @@ func (p *Processor) storeMinerSectorEvents(ctx context.Context, sectorEvents, pr
 		if err := innerGrp.Wait(); err != nil {
 			return err
 		}
-		log.Debug("1111111111111111")
 		return nil
 	})
 
@@ -611,11 +610,10 @@ func (p *Processor) storeMinerSectorEvents(ctx context.Context, sectorEvents, pr
 		if err := innerGrp.Wait(); err != nil {
 			return err
 		}
-		log.Debug("222222222222")
 		return nil
 	})
 
-	grp.Go(func() error {
+	/*grp.Go(func() error {
 		innerGrp, _ := errgroup.WithContext(ctx)
 		for mse := range partitionEvents {
 			mse := mse
@@ -636,9 +634,8 @@ func (p *Processor) storeMinerSectorEvents(ctx context.Context, sectorEvents, pr
 		if err := innerGrp.Wait(); err != nil {
 			return err
 		}
-		log.Debug("3333333333333")
 		return nil
-	})
+	})*/
 
 	if err := grp.Wait(); err != nil {
 		return err
@@ -706,7 +703,6 @@ func (p *Processor) diffMinerPartitions(ctx context.Context, m minerActorInfo, e
 	if !dc {
 		return nil
 	}
-	panic("TODO")
 
 	// FIXME: This code doesn't work.
 	// 1. We need to diff all deadlines, not just the "current" deadline.
