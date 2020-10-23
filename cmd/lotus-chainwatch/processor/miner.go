@@ -426,7 +426,7 @@ func (p *Processor) storeMinerPreCommitInfo(ctx context.Context, miners []minerA
 	if err := tx.Commit(); err != nil {
 		return xerrors.Errorf("Failed to commit sector precommit info: %w", err)
 	}
-	log.Info("storeMinerPreCommitInfo")
+	log.Debug("storeMinerPreCommitInfo")
 	return nil
 }
 
@@ -527,7 +527,7 @@ func (p *Processor) storeMinerSectorInfo(ctx context.Context, miners []minerActo
 	if err := tx.Commit(); err != nil {
 		return xerrors.Errorf("Failed to commit sector info: %w", err)
 	}
-	log.Info("storeMinerSectorInfo")
+	log.Debug("storeMinerSectorInfo")
 	return nil
 
 }
@@ -583,7 +583,11 @@ func (p *Processor) storeMinerSectorEvents(ctx context.Context, sectorEvents, pr
 				return nil
 			})
 		}
-		return innerGrp.Wait()
+		if err := innerGrp.Wait(); err != nil {
+			return err
+		}
+		log.Debug("1111111111111111")
+		return nil
 	})
 
 	grp.Go(func() error {
@@ -604,7 +608,11 @@ func (p *Processor) storeMinerSectorEvents(ctx context.Context, sectorEvents, pr
 				return nil
 			})
 		}
-		return innerGrp.Wait()
+		if err := innerGrp.Wait(); err != nil {
+			return err
+		}
+		log.Debug("222222222222")
+		return nil
 	})
 
 	grp.Go(func() error {
@@ -625,7 +633,11 @@ func (p *Processor) storeMinerSectorEvents(ctx context.Context, sectorEvents, pr
 				return nil
 			})
 		}
-		return innerGrp.Wait()
+		if err := innerGrp.Wait(); err != nil {
+			return err
+		}
+		log.Debug("3333333333333")
+		return nil
 	})
 
 	if err := grp.Wait(); err != nil {
@@ -643,7 +655,7 @@ func (p *Processor) storeMinerSectorEvents(ctx context.Context, sectorEvents, pr
 	if err := tx.Commit(); err != nil {
 		return xerrors.Errorf("Failed to commit sector events: %w", err)
 	}
-	log.Info("storeMinerSectorEvents")
+	log.Debug("storeMinerSectorEvents")
 	return nil
 }
 
@@ -977,7 +989,7 @@ func (p *Processor) storePreCommitDealInfo(dealEvents <-chan *SectorDealEvent) e
 	if err := tx.Commit(); err != nil {
 		return xerrors.Errorf("Failed to commit miner deal sector table: %w", err)
 	}
-	log.Info("storePreCommitDealInfo")
+	log.Debug("storePreCommitDealInfo")
 	return nil
 
 }
