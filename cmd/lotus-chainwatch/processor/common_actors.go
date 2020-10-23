@@ -112,10 +112,12 @@ func (p *Processor) HandleCommonActorsChanges(ctx context.Context, actors map[ci
 		if err := p.storeActorHeads(actors); err != nil {
 			return err
 		}
+		log.Info("ddddddd storeActorHeads")
 		return nil
 	})
 
 	grp.Go(func() error {
+		log.Info("ddddddd storeActorStates")
 		if err := p.storeActorStates(actors); err != nil {
 			return err
 		}

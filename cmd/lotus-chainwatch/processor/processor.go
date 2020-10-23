@@ -194,9 +194,9 @@ func (p *Processor) Start(ctx context.Context) {
 						log.Errorf("Failed to handle common actor changes: %w", err)
 						return
 					}
+					log.Info("deeeeeeeeeeeeeeeeeeeeebug--11")
 				}()
 
-				log.Info("deeeeeeeeeeeeeeeeeeeeebug--11")
 				grp.Wait()
 				log.Info("deeeeeeeeeeeeeeeeeeeeebug-22")
 				if err := p.markBlocksProcessed(ctx, toProcess); err != nil {
