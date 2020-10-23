@@ -149,6 +149,7 @@ func (p *Processor) Start(ctx context.Context) {
 						log.Errorf("Failed to handle market changes: %w", err)
 						return
 					}
+					log.Info("1111111111-HandleMarketChanges")
 				}()
 
 				grp.Add(1)
@@ -158,6 +159,7 @@ func (p *Processor) Start(ctx context.Context) {
 						log.Errorf("Failed to handle miner changes: %w", err)
 						return
 					}
+					log.Info("1111111111-HandleMinerChanges")
 				}()
 
 				grp.Add(1)
@@ -167,6 +169,7 @@ func (p *Processor) Start(ctx context.Context) {
 						log.Errorf("Failed to handle reward changes: %w", err)
 						return
 					}
+					log.Info("1111111111-HandleRewardChanges")
 				}()
 
 				grp.Add(1)
@@ -176,6 +179,7 @@ func (p *Processor) Start(ctx context.Context) {
 						log.Errorf("Failed to handle power actor changes: %w", err)
 						return
 					}
+					log.Info("1111111111-HandlePowerChanges")
 				}()
 
 				grp.Add(1)
@@ -185,6 +189,7 @@ func (p *Processor) Start(ctx context.Context) {
 						log.Errorf("Failed to handle message changes: %w", err)
 						return
 					}
+					log.Info("1111111111-HandleMessageChanges")
 				}()
 
 				grp.Add(1)
@@ -194,7 +199,7 @@ func (p *Processor) Start(ctx context.Context) {
 						log.Errorf("Failed to handle common actor changes: %w", err)
 						return
 					}
-					log.Info("deeeeeeeeeeeeeeeeeeeeebug--11")
+					log.Info("1111111111-HandleCommonActorsChanges")
 				}()
 
 				grp.Wait()
