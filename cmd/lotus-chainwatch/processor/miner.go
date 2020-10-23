@@ -426,6 +426,7 @@ func (p *Processor) storeMinerPreCommitInfo(ctx context.Context, miners []minerA
 	if err := tx.Commit(); err != nil {
 		return xerrors.Errorf("Failed to commit sector precommit info: %w", err)
 	}
+	log.Info("storeMinerPreCommitInfo")
 	return nil
 }
 
@@ -526,6 +527,7 @@ func (p *Processor) storeMinerSectorInfo(ctx context.Context, miners []minerActo
 	if err := tx.Commit(); err != nil {
 		return xerrors.Errorf("Failed to commit sector info: %w", err)
 	}
+	log.Info("storeMinerSectorInfo")
 	return nil
 
 }
@@ -641,6 +643,7 @@ func (p *Processor) storeMinerSectorEvents(ctx context.Context, sectorEvents, pr
 	if err := tx.Commit(); err != nil {
 		return xerrors.Errorf("Failed to commit sector events: %w", err)
 	}
+	log.Info("storeMinerSectorEvents")
 	return nil
 }
 
@@ -974,6 +977,7 @@ func (p *Processor) storePreCommitDealInfo(dealEvents <-chan *SectorDealEvent) e
 	if err := tx.Commit(); err != nil {
 		return xerrors.Errorf("Failed to commit miner deal sector table: %w", err)
 	}
+	log.Info("storePreCommitDealInfo")
 	return nil
 
 }
