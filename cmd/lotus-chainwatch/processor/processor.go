@@ -196,8 +196,9 @@ func (p *Processor) Start(ctx context.Context) {
 					}
 				}()
 
+				log.Info("deeeeeeeeeeeeeeeeeeeeebug--11")
 				grp.Wait()
-
+				log.Info("deeeeeeeeeeeeeeeeeeeeebug-22")
 				if err := p.markBlocksProcessed(ctx, toProcess); err != nil {
 					log.Fatalw("Failed to mark blocks as processed", "error", err)
 				}
