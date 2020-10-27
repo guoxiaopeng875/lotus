@@ -216,7 +216,6 @@ install-chainwatch: lotus-chainwatch
 
 install-daemon-service: install-daemon
 	mkdir -p /etc/systemd/system
-	mkdir -p /var/log/lotus
 	install -C -m 0644 ./scripts/lotus-daemon.service /etc/systemd/system/lotus-daemon.service
 	systemctl daemon-reload
 	@echo

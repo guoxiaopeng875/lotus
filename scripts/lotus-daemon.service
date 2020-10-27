@@ -4,7 +4,7 @@ After=network-online.target
 Requires=network-online.target
 
 [Service]
-Environment=GOLOG_FILE="/var/log/lotus/daemon.log"
+Environment=GOLOG_FILE="/lotus/logs/space/space-lotus-32GiB.log"
 Environment=GOLOG_LOG_FMT="json"
 ExecStart=/usr/local/bin/lotus daemon
 Restart=always
