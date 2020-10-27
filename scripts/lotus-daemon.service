@@ -5,7 +5,6 @@ Requires=network-online.target
 
 [Service]
 Environment=GOLOG_FILE="/lotus/logs/space/space-lotus-32GiB.log"
-Environment=GOLOG_LOG_FMT="json"
 Environment=FIL_PROOFS_PARAMETER_CACHE="/cache/proofs/filecoin-proof-parameters-32GiB"
 Environment=LOTUS_PATH="/lotus/space"
 Environment=IPFS_GATEWAY="https://proof-parameters.s3.cn-south-1.jdcloud-oss.com/ipfs/"
@@ -13,6 +12,8 @@ Environment=FIL_PROOFS_USE_GPU_COLUMN_BUILDER=1
 Environment=FIL_PROOFS_USE_GPU_TREE_BUILDER=1
 Environment=FIL_PROOFS_MAXIMIZE_CACHING=1
 Environment=FIL_PROOFS_SDR_PARENTS_CACHE_SIZE=1073741824
+Environment=RUSTFLAGS="-C target-cpu=native -g"
+Environment=RUST_LOG="Info"
 ExecStart=/usr/local/bin/lotus daemon
 Restart=always
 RestartSec=10
