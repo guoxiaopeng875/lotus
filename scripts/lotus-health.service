@@ -5,6 +5,7 @@ Requires=lotus-daemon.service
 
 [Service]
 Environment=LOTUS_PATH="/lotus/space"
+Environment=GOLOG_FILE="/lotus/logs/space/health.log"
 ExecStart=/usr/local/bin/lotus-health watch-head
 Restart=always
 RestartSec=10
