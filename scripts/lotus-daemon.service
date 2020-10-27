@@ -13,15 +13,15 @@ Environment=FIL_PROOFS_USE_GPU_TREE_BUILDER=1
 Environment=FIL_PROOFS_MAXIMIZE_CACHING=1
 Environment=FIL_PROOFS_SDR_PARENTS_CACHE_SIZE=1073741824
 Environment=RUSTFLAGS="-C target-cpu=native -g"
-Environment=RUST_LOG="Info"
+Environment=RUST_LOG="debug"
 ExecStart=/usr/local/bin/lotus daemon
 Restart=always
 RestartSec=10
 
-MemoryAccounting=true
-MemoryHigh=8G
-MemoryMax=10G
-LimitNOFILE=8192:10240
+# MemoryAccounting=true
+# MemoryHigh=8G
+# MemoryMax=10G
+# LimitNOFILE=8192:10240
 
 [Install]
 WantedBy=multi-user.target
