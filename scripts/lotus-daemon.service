@@ -6,6 +6,8 @@ Requires=network-online.target
 [Service]
 Environment=GOLOG_FILE="/lotus/logs/space/space-lotus-32GiB.log"
 Environment=GOLOG_LOG_FMT="json"
+Environment=FIL_PROOFS_PARAMETER_CACHE="/cache/proofs/filecoin-proof-parameters-32GiB"
+Environment=LOTUS_PATH="/lotus/space"
 ExecStart=/usr/local/bin/lotus daemon
 Restart=always
 RestartSec=10
