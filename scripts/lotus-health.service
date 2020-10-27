@@ -1,0 +1,13 @@
+[Unit]
+Description=LotusHealth
+After=lotus-daemon.service
+Requires=lotus-daemon.service
+
+[Service]
+Environment=LOTUS_PATH="/lotus/space"
+ExecStart=/usr/local/bin/lotus-health watch-head
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
