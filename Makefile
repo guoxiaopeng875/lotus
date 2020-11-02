@@ -221,6 +221,12 @@ install-daemon-service: install-daemon
 	@echo
 	@echo "lotus-daemon service installed. Don't forget to run 'sudo systemctl start lotus-daemon' to start it and 'sudo systemctl enable lotus-daemon' for it to be enabled on startup."
 
+install-daemon-service: install-daemon
+	install -C -m 0644 ./scripts/lotus-health.service /etc/systemd/system/lotus-health.service
+	systemctl daemon-reload
+	@echo
+	@echo "lotus-daemon service installed. Don't forget to run 'sudo systemctl start lotus-health' to start it and 'sudo systemctl enable lotus-health' for it to be enabled on startup."
+
 install-miner-service: install-miner install-daemon-service
 	mkdir -p /etc/systemd/system
 	mkdir -p /var/log/lotus
