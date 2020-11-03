@@ -1,13 +1,11 @@
 [Unit]
 Description=Chainwatch
-After=lotus-daemon.service
-Requires=lotus-daemon.service
 
 [Service]
-Environment=GOLOG_FILE="/var/log/lotus/chainwatch.log"
-Environment=GOLOG_LOG_FMT="json"
-Environment=LOTUS_DB=""
-Environment=LOTUS_PATH="%h/.lotus"
+Environment=GOLOG_FILE="/lotus/logs/space/chainwatch.log"
+Environment=GOLOG_LOG_LEVEL="debug"
+Environment=LOTUS_DB="port=5432 user=postgres password=root dbname=lotus sslmode=disable"
+Environment=LOTUS_PATH="/cache/lotus"
 EnvironmentFile=-/etc/lotus/chainwatch.env
 ExecStart=/usr/local/bin/lotus-chainwatch run
 
