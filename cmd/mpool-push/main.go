@@ -31,6 +31,9 @@ func main() {
 		},
 		Action: func(c *cli.Context) error {
 			api, closer, err := cli2.GetFullNodeAPI(c)
+			if err != nil {
+				return err
+			}
 			defer closer()
 			ctx := cli2.ReqContext(c)
 			msgBytes, err := hex.DecodeString(c.String("msg"))
