@@ -286,7 +286,8 @@ func ReqContext(cctx *cli.Context) context.Context {
 	ctx, done := context.WithCancel(tCtx)
 	sigChan := make(chan os.Signal, 2)
 	go func() {
-		<-sigChan
+		sig := <-sigChan
+		fmt.Println("sig", sig)
 		done()
 	}()
 	signal.Notify(sigChan, syscall.SIGTERM, syscall.SIGINT, syscall.SIGHUP)
