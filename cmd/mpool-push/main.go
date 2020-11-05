@@ -38,15 +38,15 @@ func main() {
 			ctx := cli2.ReqContext(c)
 			msgBytes, err := hex.DecodeString(c.String("msg"))
 			if err != nil {
-				panic(err)
+				return err
 			}
 			sm, err := types.DecodeSignedMessage(msgBytes)
 			if err != nil {
-				panic(err)
+				return err
 			}
 			cid, err := api.MpoolPush(ctx, sm)
 			if err != nil {
-				panic(err)
+				return err
 			}
 			fmt.Println(cid.String())
 			return nil
