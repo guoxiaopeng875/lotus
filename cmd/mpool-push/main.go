@@ -14,15 +14,10 @@ import (
 
 func main() {
 
-	local := []*cli.Command{
-		pushCmd,
-	}
-
 	app := &cli.App{
-		Name:     "mpool-push",
-		Usage:    "mpool-push",
-		Version:  build.UserVersion(),
-		Commands: local,
+		Name:    "mpool-push",
+		Usage:   "mpool-push",
+		Version: build.UserVersion(),
 		Flags: []cli.Flag{
 			&cli.StringFlag{
 				Name:    "repo",
@@ -59,39 +54,4 @@ func main() {
 		log.Fatal(err)
 		return
 	}
-}
-
-var pushCmd = &cli.Command{
-	Name: "watch-head",
-	Flags: []cli.Flag{
-		&cli.IntFlag{
-			Name:  "threshold",
-			Value: 3,
-			Usage: "number of times head remains unchanged before failing health check",
-		},
-		&cli.IntFlag{
-			Name:  "interval",
-			Value: int(build.BlockDelaySecs),
-			Usage: "interval in seconds between chain head checks",
-		},
-		&cli.StringFlag{
-			Name:  "systemd-unit",
-			Value: "lotus-daemon.service",
-			Usage: "systemd unit name to restart on health check failure",
-		},
-		&cli.IntFlag{
-			Name: "api-timeout",
-			// TODO: this default value seems spurious.
-			Value: int(build.BlockDelaySecs),
-			Usage: "timeout between API retries",
-		},
-		&cli.IntFlag{
-			Name:  "api-retries",
-			Value: 8,
-			Usage: "number of API retry attempts",
-		},
-	},
-	Action: func(c *cli.Context) error {
-		return nil
-	},
 }
